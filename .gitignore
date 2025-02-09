@@ -1,0 +1,9 @@
+busybox/*
+linux/*
+initramfs/*
+busybox/
+linux/
+initramfs/
+initramfs.cpio
+initramfs.cpio.gz
+bzImage

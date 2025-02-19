@@ -10,5 +10,10 @@ Launch it with `qemu-system-x86_64 disk.img` .
 
 ### Roadmap
 
+* get rid of Busybox
 * enable non-static libraries
-* publish a live boot USB
+* add proper shell
+* add Coreutils, Util-Linux, glibc, ncurses
+* enable networking (proper init)
+* configure systemd
+* (somewhere in the future) publish a live boot USB

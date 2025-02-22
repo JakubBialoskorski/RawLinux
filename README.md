@@ -4,6 +4,7 @@ Barebones Linux custom image, based on 6.14.0-rc3 kernel - smallest possible "di
 
 ### How to run it
 
+Unzip `disk.img.7z` file.
 Make sure you have `qemu` installed: `sudo apt install qemu-system-x86` .
 
 Launch it with `qemu-system-x86_64 disk.img` .

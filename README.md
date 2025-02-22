@@ -20,10 +20,14 @@ Launch it with `qemu-system-x86_64 disk.img` .
 
 [x] add Coreutils, Util-Linux, glibc, ncurses
 
+[ ] add file editor (eg. vi or nano)
+
 [ ] enable non-static libraries
 
 [ ] enable networking (proper init)
 
 [ ] configure systemd
+
+[ ] add default graphical environment
 
 [ ](somewhere in the future) publish a live boot USB

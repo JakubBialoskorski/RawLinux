@@ -20,9 +20,9 @@ Launch it with `qemu-system-x86_64 disk.img` .
 
 [x] add Coreutils, Util-Linux, glibc, ncurses
 
-[ ] add file editor (eg. vi or nano)
+[x] enable non-static libraries
 
-[ ] enable non-static libraries
+[ ] add file editor (eg. vi or nano)
 
 [ ] enable networking (proper init)
 

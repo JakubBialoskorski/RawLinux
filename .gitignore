@@ -17,3 +17,4 @@ ncurses-build/*
 root/*
 util-build/*
 util-linux/
+disk.img

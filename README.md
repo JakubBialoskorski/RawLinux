@@ -14,7 +14,7 @@ Make sure you have `qemu` installed:
 
 Launch it with `qemu-system-x86_64 disk.img` .
 
-### Roadmap
+### Roadmap & delivery
 
 [x] get rid of Busybox
 

@@ -1,0 +1,6 @@
+Linux Kernel: https://github.com/torvalds/linux
+Bash: https://git.savannah.gnu.org/git/bash.git
+Coreutils: https://github.com/coreutils/coreutils
+Util-Linux: https://github.com/util-linux/util-linux
+Glibc: https://sourceware.org/git/glibc
+Ncurses: https://ftp.gnu.org/gnu/ncurses

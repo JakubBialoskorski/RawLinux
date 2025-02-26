@@ -1,6 +1,15 @@
 Linux Kernel: https://github.com/torvalds/linux
-Bash: https://git.savannah.gnu.org/git/bash.git
-Coreutils: https://github.com/coreutils/coreutils
-Util-Linux: https://github.com/util-linux/util-linux
-Glibc: https://sourceware.org/git/glibc
+Bash: https://git.savannah.gnu.org/git/bash
+coreutils: https://github.com/coreutils/coreutils
+util-Linux: https://github.com/util-linux/util-linux
+glibc: https://sourceware.org/git/glibc
 Ncurses: https://ftp.gnu.org/gnu/ncurses
+iproute2: https://github.com/iproute2/iproute2
+elfutils: git://sourceware.org/git/elfutils
+libcap: https://git.kernel.org/pub/scm/libs/libcap
+zlib: https://zlib.net/current
+zstd: https://github.com/facebook/zstd
+wget: https://ftp.gnu.org/gnu/wget
+pcre2: https://github.com/PCRE2Project/pcre2
+OpenSSL: https://github.com/openssl/openssl
+DNSMasq: git://thekelleys.org.uk/dnsmasq

@@ -21,6 +21,22 @@ ncurses-build/*
 root/*
 util-build/*
 util-linux/
+elfutils-build/
+elfutils/
+iproute2/
+libcap/
+openssl-build/
+openssl/
+pcre2-build/
+pcre2/
+wget-*/
+wget-build/
+wget-*.tar.gz
+zlib-*/
+zlib-build/
+zlib.tar.gz
+zstd/
+
 
 # Uncompressed disk image
 disk.img

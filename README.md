@@ -1,6 +1,6 @@
 # RawLinux
 
-Barebones Linux custom image, based on 6.14.0-rc3 kernel - smallest possible "distribution".
+Barebones Linux custom image, based on 6.14.0-rc4 kernel - smallest possible "distribution".
 
 Everything redistributed in this project can be found in [sources](sources.txt) file.
 
@@ -24,9 +24,9 @@ Launch it with `qemu-system-x86_64 disk.img` .
 
 [x] enable non-static libraries
 
-[ ] add file editor (eg. vi or nano)
+[x] add file editor (nano)
 
-[ ] enable networking (proper init)
+[x] enable networking (ethernet)
 
 [ ] configure systemd
 

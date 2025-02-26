@@ -1,3 +1,7 @@
+# IDE
+.idea
+
+# Internals
 linux/*
 initramfs/*
 linux/
@@ -17,4 +21,6 @@ ncurses-build/*
 root/*
 util-build/*
 util-linux/
+
+# Uncompressed disk image
 disk.img

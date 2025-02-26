@@ -1,6 +1,8 @@
 # RawLinux
 
-Barebones Linux custom image, based on 6.14.0-rc3 kernel - smallest possible "distribution". Uses official [torvalds/linux](https://github.com/torvalds/linux) .
+Barebones Linux custom image, based on 6.14.0-rc3 kernel - smallest possible "distribution".
+
+Everything redistributed in this project can be found in [sources](sources.txt) file.
 
 ### How to run it
 

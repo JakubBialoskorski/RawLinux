@@ -28,6 +28,8 @@ Launch it with `qemu-system-x86_64 disk.img` .
 
 [x] enable networking (ethernet)
 
+[ ] document system libs and their purpose
+
 [ ] configure systemd
 
 [ ] add default graphical environment

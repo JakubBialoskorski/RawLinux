@@ -1,11 +1,12 @@
 # RawLinux
 
-Barebones Linux custom image, based on 6.14.0-rc4 kernel - smallest possible "distribution".
+Barebones Linux custom image, based on 6.14.0-rc2 kernel - smallest possible "distribution".
 
 Everything redistributed in this project can be found in [sources](sources.txt) file.
 
 ### How to run it
 
+Grab the latest [release](https://github.com/JakubBialoskorski/RawLinux/releases)
 Unzip `disk.img.7z` file.
 
 Make sure you have `qemu` installed: 

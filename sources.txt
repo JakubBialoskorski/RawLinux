@@ -2,7 +2,7 @@ Linux Kernel: https://github.com/torvalds/linux
 Bash: https://git.savannah.gnu.org/git/bash
 coreutils: https://github.com/coreutils/coreutils
 util-Linux: https://github.com/util-linux/util-linux
-glibc: https://sourceware.org/git/glibc
+glibc: https://ftp.gnu.org/gnu/glibc
 Ncurses: https://ftp.gnu.org/gnu/ncurses
 iproute2: https://github.com/iproute2/iproute2
 elfutils: git://sourceware.org/git/elfutils
@@ -13,3 +13,25 @@ wget: https://ftp.gnu.org/gnu/wget
 pcre2: https://github.com/PCRE2Project/pcre2
 OpenSSL: https://github.com/openssl/openssl
 DNSMasq: git://thekelleys.org.uk/dnsmasq
+GCC & libstddc++: https://ftp.gnu.org/gnu/gcc
+make: https://ftp.gnu.org/gnu/make
+tar: https://ftp.gnu.org/gnu/tar
+gzip: https://ftp.gnu.org/gnu/gzip
+sed: https://ftp.gnu.org/gnu/sed
+grep: https://ftp.gnu.org/gnu/grep
+awk: https://ftp.gnu.org/gnu/gawk
+binutils: https://sourceware.org/pub/binutils/releases
+xz: https://github.com/tukaani-project/xz/releases
+diffutils: https://ftp.gnu.org/gnu/diffutils
+m4: https://ftp.gnu.org/gnu/m4
+bison: https://ftp.gnu.org/gnu/bison
+bzip2: https://sourceware.org/pub/bzip2
+FLEX: https://github.com/westes/flex/releases
+findutils: https://ftp.gnu.org/gnu/findutils
+Perl: https://cpan.org/src/5.0
+autoconf: https://ftp.gnu.org/gnu/autoconf
+Texinfo: https://ftp.gnu.org/gnu/texinfo
+BC: https://ftp.gnu.org/gnu/bc
+curl: https://github.com/curl/curl/releases
+git: https://github.com/git/git/archive/refs/tags
+strace: https://github.com/strace/strace/releases

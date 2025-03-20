@@ -7,6 +7,7 @@ Everything redistributed in this project can be found in [sources](sources.txt) 
 ### How to run it
 
 Grab the latest [release](https://github.com/JakubBialoskorski/RawLinux/releases)
+
 Unzip `disk.img.7z` file.
 
 Make sure you have `qemu` installed: 

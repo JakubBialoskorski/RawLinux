@@ -29,6 +29,8 @@ Launch it with `qemu-system-x86_64 disk.img` .
 
 [x] enable networking (ethernet)
 
+[x] add compiler (self-sustained system)
+
 [ ] document system libs and their purpose
 
 [ ] configure systemd

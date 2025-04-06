@@ -2,7 +2,7 @@
 
 Barebones Linux custom image, based on 6.14.0-rc2 kernel - smallest possible "distribution".
 
-Everything redistributed in this project can be found in [sources](sources.txt) file.
+Everything redistributed in this project can be found in [sources](docs/sources.txt) file.
 
 ### How to run it
 
@@ -32,9 +32,9 @@ Launch it with `qemu-system-x86_64 disk.img` .
 
 [x] add compiler (self-sustained system)
 
-[ ] document system libs and their purpose
+[x] document system libs and their purpose
 
-[ ] configure systemd
+[ ] configure systemd (or openrc, not decided yet)
 
 [ ] add default graphical environment
 

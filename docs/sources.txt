@@ -1,9 +1,9 @@
 Linux Kernel: https://github.com/torvalds/linux
 Bash: https://git.savannah.gnu.org/git/bash
 coreutils: https://github.com/coreutils/coreutils
-util-Linux: https://github.com/util-linux/util-linux
+util-linux: https://github.com/util-linux/util-linux
 glibc: https://ftp.gnu.org/gnu/glibc
-Ncurses: https://ftp.gnu.org/gnu/ncurses
+ncurses: https://ftp.gnu.org/gnu/ncurses
 iproute2: https://github.com/iproute2/iproute2
 elfutils: git://sourceware.org/git/elfutils
 libcap: https://git.kernel.org/pub/scm/libs/libcap
@@ -12,8 +12,8 @@ zstd: https://github.com/facebook/zstd
 wget: https://ftp.gnu.org/gnu/wget
 pcre2: https://github.com/PCRE2Project/pcre2
 OpenSSL: https://github.com/openssl/openssl
-DNSMasq: git://thekelleys.org.uk/dnsmasq
-GCC & libstddc++: https://ftp.gnu.org/gnu/gcc
+dnsmasq: git://thekelleys.org.uk/dnsmasq
+GCC & libstdc++: https://ftp.gnu.org/gnu/gcc
 make: https://ftp.gnu.org/gnu/make
 tar: https://ftp.gnu.org/gnu/tar
 gzip: https://ftp.gnu.org/gnu/gzip
@@ -26,12 +26,12 @@ diffutils: https://ftp.gnu.org/gnu/diffutils
 m4: https://ftp.gnu.org/gnu/m4
 bison: https://ftp.gnu.org/gnu/bison
 bzip2: https://sourceware.org/pub/bzip2
-FLEX: https://github.com/westes/flex/releases
+flex: https://github.com/westes/flex/releases
 findutils: https://ftp.gnu.org/gnu/findutils
 Perl: https://cpan.org/src/5.0
 autoconf: https://ftp.gnu.org/gnu/autoconf
 Texinfo: https://ftp.gnu.org/gnu/texinfo
-BC: https://ftp.gnu.org/gnu/bc
+bc: https://ftp.gnu.org/gnu/bc
 curl: https://github.com/curl/curl/releases
 git: https://github.com/git/git/archive/refs/tags
 strace: https://github.com/strace/strace/releases

@@ -4,17 +4,17 @@ Bash: to have a basic shell.
 
 coreutils: to be able to run `cat`, `rm`, `cp` etc.
 
-util-Linux: bunch of tools like `mount` .
+util-linux: bunch of tools like `mount` .
 
 glibc: contains lib loader `ld-linux`, allows to use dynamic libraries.
 
-Ncurses: allows Bash to work (well, not only it).
+ncurses: terminal library, required by Bash and other terminal applications.
 
 iproute2: default network tool, allows connection to the Internet.
 
 elfutils: provides `libelf` and elf editing tools.
 
-libcap: handles priviledge and permissions.
+libcap: handles privilege and permissions.
 
 zlib: compression tool, provides `libz`.
 
@@ -26,9 +26,9 @@ pcre2: tool for regex pattern matching.
 
 OpenSSL: library for SSL, TLS, HTTPS etc.
 
-DNSMasq: small DNS server from more civilized times (before systemd).
+dnsmasq: lightweight DNS/DHCP server.
 
-GCC & libstddc++: basic GNU compiler and it's C++ libs.
+GCC & libstdc++: basic GNU compiler and it's C++ libs.
 
 make: tool to build from sources.
 
@@ -40,11 +40,11 @@ sed: stream editor.
 
 grep: to catch strings.
 
-awk: dependency for Perl.
+awk: text processing tool, also needed by Perl.
 
 binutils: used with `make`.
 
-xz: to test compiler inside the distro.
+xz: compression tool, used to verify the compiler.
 
 diffutils: provides `diff` and `cmp`.
 
@@ -54,17 +54,17 @@ bison: needed by the kernel and other GNU software.
 
 bzip2: to complement `tar` and `gzip`.
 
-FLEX: Fast Lexical Analyzer, needed by the kernel.
+flex: Fast Lexical Analyzer, needed by the kernel.
 
 findutils: provides `find`.
 
-Perl: needed everywhere + `curl`.
+Perl: needed by many tools, including `curl`.
 
 autoconf: needed by `git`.
 
 Texinfo: required by `bc`, which is a dependency for the kernel.
 
-BC: needed to compile the kernel itself.
+bc: needed to compile the kernel itself.
 
 curl: tool for downloading stuff.
 

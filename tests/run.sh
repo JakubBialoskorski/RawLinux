@@ -314,6 +314,118 @@ test_lock_blocks_second_writer() {
 	check test ! -e "$ROOT/var/lib/pike/lock"
 }
 
+test_adopt_registers_base_system() {
+	mkdir -p "$ROOT/usr/bin" "$ROOT/etc" "$ROOT/boot" "$ROOT/home/user" "$ROOT/tmp" "$ROOT/var/cache/x"
+	echo sh >"$ROOT/usr/bin/sh"
+	echo root >"$ROOT/etc/passwd"
+	echo k >"$ROOT/boot/bzImage"
+	echo mine >"$ROOT/home/user/notes"
+	echo t >"$ROOT/tmp/x"
+	ln -s usr/bin "$ROOT/bin"
+	check pike adopt
+	m=$ROOT/var/lib/pike/db/base-system/manifest
+	check contains "$m" usr/bin/sh
+	check contains "$m" usr/bin/
+	check contains "$m" bin
+	check contains "$m" etc/passwd
+	check contains "$m" boot/bzImage
+	fails grep -qE '^(home|root|tmp|var/cache|var/lib/pike)(/|$)' "$m"
+	fails grep -qx '/*' "$m"
+	pike owns /usr/bin/sh
+	check test "$(cat "$T/out")" = base-system
+	pike list
+	check out_has "base-system "
+}
+
+test_install_takes_over_base_files() {
+	recipe hello 1 "" "" usr/bin/hello=new usr/share/hello/README=r
+	mkdir -p "$ROOT/usr/bin" "$ROOT/usr/share/hello"
+	echo old >"$ROOT/usr/bin/hello"
+	echo sh >"$ROOT/usr/bin/sh"
+	check pike adopt
+	check pike build hello
+	# A file created after adopt is still untracked.
+	echo mine >"$ROOT/usr/share/hello/README"
+	fails pike install hello
+	check out_has "/usr/share/hello/README exists and is not owned by any package"
+	rm "$ROOT/usr/share/hello/README"
+	check pike install hello
+	check out_has "files taken over from base-system: 1"
+	check contains "$ROOT/usr/bin/hello" new
+	pike owns /usr/bin/hello
+	check test "$(cat "$T/out")" = hello
+	m=$ROOT/var/lib/pike/db/base-system/manifest
+	fails contains "$m" usr/bin/hello
+	check contains "$m" usr/bin/sh
+	check contains "$ROOT/var/lib/pike/base/usr/bin/hello" old
+	# Removing the package gives the original back to the base system.
+	check pike remove hello
+	check out_has "files given back to base-system: 1"
+	check contains "$ROOT/usr/bin/hello" old
+	check hasnt usr/share/hello/README
+	check hasnt var/lib/pike/base/usr/bin/hello
+	check contains "$m" usr/bin/hello
+	pike owns /usr/bin/hello
+	check test "$(cat "$T/out")" = base-system
+}
+
+test_upgrade_gives_back_dropped_base_files() {
+	recipe linux 1 "" "" boot/bzImage=new1 boot/config=c1
+	mkdir -p "$ROOT/boot"
+	echo old >"$ROOT/boot/bzImage"
+	check pike adopt
+	check pike build linux
+	check pike install linux
+	recipe linux 2 "" "" boot/bzImage=new2
+	check pike build linux
+	check pike install linux
+	check contains "$ROOT/boot/bzImage" new2
+	check contains "$ROOT/var/lib/pike/base/boot/bzImage" old
+	recipe linux 3 "" "" boot/vmlinuz=new3
+	check pike build linux
+	check pike install linux
+	check out_has "files given back to base-system: 1"
+	check contains "$ROOT/boot/bzImage" old
+	check hasnt boot/config
+	pike owns /boot/bzImage
+	check test "$(cat "$T/out")" = base-system
+	check test ! -s "$ROOT/var/lib/pike/db/linux/takeover"
+	check pike remove linux
+	check contains "$ROOT/boot/bzImage" old
+	check hasnt boot/vmlinuz
+}
+
+test_adopt_skips_package_files() {
+	recipe hello 1 "" "" usr/bin/hello=hi
+	check pike build hello
+	check pike install hello
+	mkdir -p "$ROOT/etc"
+	echo a >"$ROOT/etc/a"
+	check pike adopt
+	m=$ROOT/var/lib/pike/db/base-system/manifest
+	fails contains "$m" usr/bin/hello
+	check contains "$m" usr/bin/
+	check contains "$m" etc/a
+	pike owns /usr/bin/hello
+	check test "$(cat "$T/out")" = hello
+	# Running it again records new files and forgets deleted ones.
+	rm "$ROOT/etc/a"
+	echo b >"$ROOT/etc/b"
+	check pike adopt
+	fails contains "$m" etc/a
+	check contains "$m" etc/b
+	fails contains "$m" usr/bin/hello
+}
+
+test_base_system_cannot_be_removed() {
+	mkdir -p "$ROOT/usr/bin"
+	echo sh >"$ROOT/usr/bin/sh"
+	check pike adopt
+	fails pike remove base-system
+	check out_has "base-system cannot be removed"
+	check has usr/bin/sh
+}
+
 tests=$(declare -F | sed -n 's/^declare -f \(test_.*\)/\1/p')
 for t in $tests; do
 	run "$t"

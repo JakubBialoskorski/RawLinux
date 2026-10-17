@@ -314,6 +314,60 @@ test_lock_blocks_second_writer() {
 	check test ! -e "$ROOT/var/lib/pike/lock"
 }
 
+test_adopt_registers_base_system() {
+	mkdir -p "$ROOT/usr/bin" "$ROOT/etc" "$ROOT/boot" "$ROOT/home/user" "$ROOT/tmp" "$ROOT/var/cache/x"
+	echo sh >"$ROOT/usr/bin/sh"
+	echo root >"$ROOT/etc/passwd"
+	echo k >"$ROOT/boot/bzImage"
+	echo mine >"$ROOT/home/user/notes"
+	echo t >"$ROOT/tmp/x"
+	ln -s usr/bin "$ROOT/bin"
+	check pike adopt
+	m=$ROOT/var/lib/pike/db/base-system/manifest
+	check contains "$m" usr/bin/sh
+	check contains "$m" usr/bin/
+	check contains "$m" bin
+	check contains "$m" etc/passwd
+	check contains "$m" boot/bzImage
+	fails grep -qE '^(home|root|tmp|var/cache|var/lib/pike)(/|$)' "$m"
+	fails grep -qx '/*' "$m"
+	pike owns /usr/bin/sh
+	check test "$(cat "$T/out")" = base-system
+	pike list
+	check out_has "base-system "
+}
+
+test_adopt_skips_package_files() {
+	recipe hello 1 "" "" usr/bin/hello=hi
+	check pike build hello
+	check pike install hello
+	mkdir -p "$ROOT/etc"
+	echo a >"$ROOT/etc/a"
+	check pike adopt
+	m=$ROOT/var/lib/pike/db/base-system/manifest
+	fails contains "$m" usr/bin/hello
+	check contains "$m" usr/bin/
+	check contains "$m" etc/a
+	pike owns /usr/bin/hello
+	check test "$(cat "$T/out")" = hello
+	# Running it again records new files and forgets deleted ones.
+	rm "$ROOT/etc/a"
+	echo b >"$ROOT/etc/b"
+	check pike adopt
+	fails contains "$m" etc/a
+	check contains "$m" etc/b
+	fails contains "$m" usr/bin/hello
+}
+
+test_base_system_cannot_be_removed() {
+	mkdir -p "$ROOT/usr/bin"
+	echo sh >"$ROOT/usr/bin/sh"
+	check pike adopt
+	fails pike remove base-system
+	check out_has "base-system cannot be removed"
+	check has usr/bin/sh
+}
+
 tests=$(declare -F | sed -n 's/^declare -f \(test_.*\)/\1/p')
 for t in $tests; do
 	run "$t"

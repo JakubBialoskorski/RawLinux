@@ -23,6 +23,11 @@ LOCK=${ROOT}var/lib/pike/lock
 # Top level directories that are symlinks into /usr on RawLinux.
 MERGED_USR=(bin sbin lib lib64)
 
+# The pseudo package that holds the hand-built system, and the paths
+# 'pike adopt' leaves out of it.
+BASE_PKG=base-system
+ADOPT_SKIP=(home root tmp var/tmp var/cache var/lib/pike)
+
 msg() { printf '==> %s\n' "$*" >&2; }
 warn() { printf 'pike: %s\n' "$*" >&2; }
 die() { warn "$*"; exit 1; }
@@ -34,6 +39,7 @@ usage: pike <command> [args]
   build <name>         build a package from its recipe
   install <name|file>  install or upgrade a built package
   add <name>           build and install a package with its dependencies
+  adopt                record untracked files as the base-system package
   remove <name>        remove an installed package
   list                 list installed packages
   files <name>         list files owned by a package
@@ -217,6 +223,20 @@ cmd_build() {
 	)
 }
 
+# Write the database entry of a package. Every file goes through
+# <file>.new and a rename, so an entry is never half written.
+save_db() {
+	local name=$1 version=$2 deps=$3 sums=$4 manifest=$5 p
+	mkdir -p "$DB/$name"
+	printf '%s\n' "$deps" >"$DB/$name/depends.new"
+	cp "$sums" "$DB/$name/backup.new"
+	cp "$manifest" "$DB/$name/manifest.new"
+	printf '%s\n' "$version" >"$DB/$name/version.new"
+	for p in depends backup manifest version; do
+		mv "$DB/$name/$p.new" "$DB/$name/$p"
+	done
+}
+
 # Print the value of a key from the .pikeinfo extracted to $TMP.
 pkginfo() { sed -n "s/^$1=//p" "$TMP/pikeinfo"; }
 
@@ -379,14 +399,7 @@ cmd_install() {
 			remove_paths "$TMP/stale" "$name"
 		fi
 
-		mkdir -p "$DB/$name"
-		printf '%s\n' "$depends" >"$DB/$name/depends.new"
-		cp "$TMP/backup.db" "$DB/$name/backup.new"
-		cp "$TMP/manifest" "$DB/$name/manifest.new"
-		printf '%s\n' "$version-$release" >"$DB/$name/version.new"
-		for p in depends backup manifest version; do
-			mv "$DB/$name/$p.new" "$DB/$name/$p"
-		done
+		save_db "$name" "$version-$release" "$depends" "$TMP/backup.db" "$TMP/manifest"
 		msg "installed $name $version-$release"
 	)
 }
@@ -396,6 +409,7 @@ cmd_remove() {
 	need_root
 	(
 		local name=$1 d users=()
+		[ "$name" != "$BASE_PKG" ] || die "$BASE_PKG cannot be removed"
 		lock
 		is_installed "$name" || die "$name is not installed"
 		for d in "$DB"/*/depends; do
@@ -468,6 +482,30 @@ cmd_add() {
 	done
 }
 
+# Record every file that no package owns as the base-system package,
+# so 'owns' works for the hand-built system and recipes can take its
+# files over one by one. Running it again picks up new untracked files
+# and forgets deleted ones.
+cmd_adopt() {
+	[ $# -eq 0 ] || die "usage: pike adopt"
+	need_root
+	(
+		local d skip=() version
+		lock
+		for d in "${ADOPT_SKIP[@]}"; do
+			skip+=(-path "$ROOT$d" -prune -o)
+		done
+		find "$ROOT" -xdev "${skip[@]}" -type d -printf '%P/\n' -o -printf '%P\n' |
+			sed '/^\/$/d' | sort -u >"$TMP/all"
+		owners_of "$TMP/all" "$BASE_PKG" | cut -d' ' -f2- | sort -u >"$TMP/owned"
+		comm -23 "$TMP/all" "$TMP/owned" >"$TMP/manifest"
+		: >"$TMP/backup.db"
+		version=$(date +%Y%m%d)
+		save_db "$BASE_PKG" "$version" "" "$TMP/backup.db" "$TMP/manifest"
+		msg "$BASE_PKG $version owns $(grep -vc '/$' "$TMP/manifest") files"
+	)
+}
+
 cmd_list() {
 	local d
 	for d in "$DB"/*/version; do
@@ -528,7 +566,7 @@ cmd_checksum() {
 cmd=$1
 shift
 case $cmd in
-build | install | add | remove | list | files | owns | deps | checksum) "cmd_$cmd" "$@" ;;
+build | install | add | adopt | remove | list | files | owns | deps | checksum) "cmd_$cmd" "$@" ;;
 -h | --help | help) usage ;;
 *)
 	usage >&2

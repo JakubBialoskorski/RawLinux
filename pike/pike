@@ -1,0 +1,537 @@
+#!/bin/bash
+#
+# pike - a small source-based package manager for RawLinux
+#
+# Recipes live in $PIKE_RECIPES/<name>/recipe, built packages in
+# $PIKE_CACHE/packages and the database of installed packages in
+# $ROOT/var/lib/pike/db/<name>/{version,depends,backup,manifest}.
+# The backup file stores "sha256 path" of every protected config file
+# as it was shipped, to tell local changes apart from old defaults.
+
+set -eu -o pipefail
+shopt -s inherit_errexit
+export LC_ALL=C
+
+ROOT=${ROOT:-/}
+ROOT=${ROOT%/}/
+PIKE_RECIPES=${PIKE_RECIPES:-/usr/share/pike/recipes}
+PIKE_CACHE=${PIKE_CACHE:-/var/cache/pike}
+PIKE_WORK=${PIKE_WORK:-/var/tmp/pike}
+DB=${ROOT}var/lib/pike/db
+LOCK=${ROOT}var/lib/pike/lock
+
+# Top level directories that are symlinks into /usr on RawLinux.
+MERGED_USR=(bin sbin lib lib64)
+
+msg() { printf '==> %s\n' "$*" >&2; }
+warn() { printf 'pike: %s\n' "$*" >&2; }
+die() { warn "$*"; exit 1; }
+
+usage() {
+	cat <<EOF
+usage: pike <command> [args]
+
+  build <name>         build a package from its recipe
+  install <name|file>  install or upgrade a built package
+  add <name>           build and install a package with its dependencies
+  remove <name>        remove an installed package
+  list                 list installed packages
+  files <name>         list files owned by a package
+  owns <path>          show which package owns a file
+  deps <name>          show the dependency order for a package
+  checksum <name>      print sha256 sums of a recipe's sources
+EOF
+}
+
+# Only one process may change the database at a time. The lock is a
+# directory because mkdir is atomic. Callers run in a subshell so the
+# EXIT trap releases the lock when they finish.
+lock() {
+	mkdir -p "${LOCK%/*}"
+	mkdir "$LOCK" 2>/dev/null || die "database is locked, remove $LOCK if no other pike is running"
+	TMP=$(mktemp -d)
+	trap 'rm -rf "$TMP"; rmdir "$LOCK"' EXIT
+}
+
+need_root() {
+	if [ "$ROOT" = / ] && [ "$(id -u)" -ne 0 ]; then
+		die "this command needs root"
+	fi
+}
+
+is_installed() { [ -f "$DB/$1/version" ]; }
+
+# Source a recipe into the current shell and check its fields.
+# Call it from a subshell so recipes do not leak into each other.
+load_recipe() {
+	local f=$PIKE_RECIPES/$1/recipe
+	[ -f "$f" ] || die "no recipe for '$1' in $PIKE_RECIPES"
+	name='' version='' release=''
+	depends=() source=() sha256=() backup=()
+	# shellcheck source=/dev/null
+	. "$f"
+	[ "$name" = "$1" ] || die "$f: name must be '$1'"
+	[ -n "$version" ] || die "$f: version is not set"
+	[ -n "$release" ] || die "$f: release is not set"
+	[ "${#source[@]}" -eq "${#sha256[@]}" ] || die "$f: source and sha256 differ in length"
+	declare -F build >/dev/null || die "$f: build() is not defined"
+}
+
+recipe_depends() {
+	(
+		load_recipe "$1"
+		printf '%s\n' "${depends[@]}"
+	)
+}
+
+pkgfile() {
+	(
+		load_recipe "$1"
+		printf '%s\n' "$PIKE_CACHE/packages/$name#$version-$release.tar.xz"
+	)
+}
+
+# A source is either a URL, downloaded into the cache once,
+# or a file stored next to the recipe. Prints the local path.
+# Downloads are kept per package, since archives from different
+# projects often share a file name such as v1.0.tar.gz.
+fetch() {
+	local src=$1 dest
+	case $src in
+	*://*)
+		dest=$PIKE_CACHE/sources/$name/${src##*/}
+		if [ ! -f "$dest" ]; then
+			msg "fetching $src"
+			mkdir -p "${dest%/*}"
+			curl -fL --retry 3 -o "$dest.part" "$src" || die "download failed: $src"
+			mv "$dest.part" "$dest"
+		fi
+		;;
+	*)
+		dest=$PIKE_RECIPES/$name/$src
+		[ -f "$dest" ] || die "missing local source: $dest"
+		;;
+	esac
+	printf '%s\n' "$dest"
+}
+
+sum_of() {
+	local s
+	s=$(sha256sum "$1")
+	printf '%s\n' "${s%% *}"
+}
+
+verify() {
+	local i file sum
+	for i in "${!source[@]}"; do
+		file=$(fetch "${source[$i]}")
+		sum=$(sum_of "$file")
+		if [ "$sum" != "${sha256[$i]}" ]; then
+			warn "sha256 mismatch for ${source[$i]}: expected ${sha256[$i]}, got $sum"
+			# Move a bad download aside so the next build fetches it again.
+			case ${source[$i]} in
+			*://*)
+				mv "$file" "$file.bad"
+				warn "moved the download to $file.bad"
+				;;
+			esac
+			exit 1
+		fi
+	done
+}
+
+unpack() {
+	case $1 in
+	*.tar | *.tar.* | *.tgz | *.tbz2 | *.txz) tar -xf "$1" -C "$2" ;;
+	*) cp -p "$1" "$2/" ;;
+	esac
+}
+
+is_elf() { [ "$(od -An -tx1 -N4 "$1" 2>/dev/null | tr -d ' \n')" = 7f454c46 ]; }
+
+strip_pkg() {
+	local f
+	find "$1" -type f | while IFS= read -r f; do
+		is_elf "$f" || continue
+		case $f in
+		*.a | *.o) strip --strip-debug "$f" 2>/dev/null || true ;;
+		*) strip --strip-unneeded "$f" 2>/dev/null || true ;;
+		esac
+	done
+}
+
+cmd_build() {
+	[ $# -eq 1 ] || die "usage: pike build <name>"
+	(
+		load_recipe "$1"
+		local out work s f d rc
+		out=$PIKE_CACHE/packages/$name#$version-$release.tar.xz
+		verify
+
+		mkdir -p "$PIKE_WORK" "$PIKE_CACHE/packages"
+		work=$(mktemp -d "$PIKE_WORK/$name.XXXXXX")
+		trap 'rm -rf "$work"' EXIT
+		SRC=$work/src
+		PKG=$work/pkg
+		mkdir -p "$SRC" "$PKG"
+		export SRC PKG
+
+		for s in "${source[@]}"; do
+			f=$(fetch "$s")
+			unpack "$f" "$SRC"
+		done
+
+		# errexit is ignored inside 'cmd || die', so build() runs as
+		# a plain command and its status is checked afterwards.
+		msg "building $name $version-$release"
+		set +e
+		(
+			set -e
+			cd "$SRC"
+			build
+		)
+		rc=$?
+		set -e
+		[ "$rc" -eq 0 ] || die "build() failed for $name"
+
+		for d in "${MERGED_USR[@]}"; do
+			if [ -e "$PKG/$d" ] || [ -L "$PKG/$d" ]; then
+				die "$name installs into /$d, use /usr/$d instead"
+			fi
+		done
+		rm -f "$PKG/usr/share/info/dir"
+		[ -n "$(ls -A "$PKG")" ] || die "$name installed nothing into \$PKG"
+
+		strip_pkg "$PKG"
+		{
+			printf 'name=%s\n' "$name"
+			printf 'version=%s\n' "$version"
+			printf 'release=%s\n' "$release"
+			printf 'depends=%s\n' "${depends[*]}"
+			printf 'backup=%s\n' "${backup[*]}"
+		} >"$PKG/.pikeinfo"
+
+		tar -C "$PKG" --owner=0 --group=0 --numeric-owner -cJf "$out.part" .
+		mv "$out.part" "$out"
+		msg "built $out"
+	)
+}
+
+# Print the value of a key from the .pikeinfo extracted to $TMP.
+pkginfo() { sed -n "s/^$1=//p" "$TMP/pikeinfo"; }
+
+# Paths inside a package, relative to $ROOT; directories end with '/'.
+pkg_manifest() {
+	tar -tJf "$1" | sed -e 's|^\./||' -e '/^$/d' -e '/^\.pikeinfo$/d' | sort -u
+}
+
+# For every path in the list that another installed package owns,
+# print "package path". Directories are included only with 'dirs'.
+owners_of() {
+	local list=$1 self=$2 dirs=${3:-} m manifests=()
+	for m in "$DB"/*/manifest; do
+		[ -f "$m" ] || continue
+		[ "$m" = "$DB/$self/manifest" ] && continue
+		manifests+=("$m")
+	done
+	[ "${#manifests[@]}" -gt 0 ] || return 0
+	awk -v dirs="$dirs" '
+		NR == FNR { want[$0]; next }
+		/\/$/ && dirs == "" { next }
+		($0 in want) {
+			pkg = FILENAME
+			sub(/\/manifest$/, "", pkg)
+			sub(/.*\//, "", pkg)
+			print pkg, $0
+		}' "$list" "${manifests[@]}"
+}
+
+# Print the recorded sha256 of a package's backup file.
+recorded_sum() {
+	[ -f "$DB/$1/backup" ] || return 0
+	awk -v p="$2" '{ s = $1; sub(/^[^ ]+ /, ""); if ($0 == p) print s }' "$DB/$1/backup"
+}
+
+# Before files of a package go away, move its backup files that were
+# changed locally out of the way as <file>.pikesave.
+save_modified_backups() {
+	local name=$1 list=$2 sum p
+	[ -f "$DB/$name/backup" ] || return 0
+	while read -r sum p; do
+		grep -qxF -- "$p" "$list" || continue
+		[ -f "$ROOT$p" ] || continue
+		if [ "$(sum_of "$ROOT$p")" != "$sum" ]; then
+			mv "$ROOT$p" "$ROOT$p.pikesave"
+			msg "/$p was modified, saved as /$p.pikesave"
+		fi
+	done <"$DB/$name/backup"
+}
+
+# Remove the paths listed in a file, deepest first, skipping
+# anything that another package still owns.
+remove_paths() {
+	local list=$1 self=$2 p
+	owners_of "$list" "$self" dirs | cut -d' ' -f2- | sort -u >"$list.owned"
+	comm -23 "$list" "$list.owned" | sort -r | while IFS= read -r p; do
+		case $p in
+		*/) rmdir "$ROOT$p" 2>/dev/null || true ;;
+		*) rm -f "$ROOT$p" ;;
+		esac
+	done
+}
+
+cmd_install() {
+	[ $# -eq 1 ] || die "usage: pike install <name|file>"
+	need_root
+	(
+		local file=$1
+		case $file in
+		*.tar.xz) ;;
+		*) file=$(pkgfile "$1") ;;
+		esac
+		[ -f "$file" ] || die "no package $file, run 'pike build $1' first"
+
+		# Dependencies are checked under the lock, so a parallel
+		# 'pike remove' cannot take one away in the meantime.
+		lock
+		tar -xOJf "$file" ./.pikeinfo >"$TMP/pikeinfo" 2>/dev/null || die "$file is not a pike package"
+		local name version release depends backup
+		name=$(pkginfo name)
+		version=$(pkginfo version)
+		release=$(pkginfo release)
+		depends=$(pkginfo depends)
+		backup=$(pkginfo backup)
+		[ -n "$name" ] || die "$file is not a pike package"
+
+		# Split the lists without glob expansion.
+		local dep deps=() backups=() missing=()
+		read -ra deps <<<"$depends"
+		read -ra backups <<<"$backup"
+		for dep in "${deps[@]}"; do
+			is_installed "$dep" || missing+=("$dep")
+		done
+		[ "${#missing[@]}" -eq 0 ] || die "$name needs: ${missing[*]}"
+
+		local old=$DB/$name/manifest owner p conflicts=0
+		pkg_manifest "$file" >"$TMP/manifest"
+		if grep -qE '^/|(^|/)\.\.(/|$)' "$TMP/manifest"; then
+			die "$file contains unsafe paths"
+		fi
+
+		# A file is a conflict when another package owns it, or when
+		# it exists on disk without belonging to any package.
+		owners_of "$TMP/manifest" "$name" >"$TMP/owned"
+		while read -r owner p; do
+			warn "conflict: /$p is owned by $owner"
+			conflicts=1
+		done <"$TMP/owned"
+		{
+			cut -d' ' -f2- "$TMP/owned"
+			if [ -f "$old" ]; then cat "$old"; fi
+		} | sort -u >"$TMP/known"
+		# Temporary files instead of process substitution: a minimal
+		# system may not have /dev/fd.
+		{ grep -v '/$' "$TMP/manifest" || true; } | comm -23 - "$TMP/known" >"$TMP/new"
+		while IFS= read -r p; do
+			if [ -e "$ROOT$p" ] || [ -L "$ROOT$p" ]; then
+				warn "conflict: /$p exists and is not owned by any package"
+				conflicts=1
+			fi
+		done <"$TMP/new"
+		[ "$conflicts" -eq 0 ] || die "not installing $name"
+
+		# Backup files that still match the version shipped last time
+		# are replaced. Local changes are kept and the new version goes
+		# next to them as <file>.new.
+		local new cur orig
+		: >"$TMP/exclude"
+		: >"$TMP/backup.db"
+		for p in "${backups[@]}"; do
+			grep -qxF -- "$p" "$TMP/manifest" || continue
+			tar -xOJf "$file" "./$p" >"$TMP/backup"
+			new=$(sum_of "$TMP/backup")
+			printf '%s %s\n' "$new" "$p" >>"$TMP/backup.db"
+			[ -f "$ROOT$p" ] || continue
+			cur=$(sum_of "$ROOT$p")
+			orig=$(recorded_sum "$name" "$p")
+			if [ "$cur" != "$new" ]; then
+				if [ -n "$orig" ] && [ "$cur" = "$orig" ]; then
+					continue
+				fi
+				cp "$TMP/backup" "$ROOT$p.new"
+				msg "kept modified /$p, new version saved as /$p.new"
+			fi
+			printf './%s\n' "$p" >>"$TMP/exclude"
+		done
+
+		if is_installed "$name"; then
+			msg "upgrading $name $(cat "$DB/$name/version") -> $version-$release"
+		else
+			msg "installing $name $version-$release"
+		fi
+		tar -xJpf "$file" -C "$ROOT" --numeric-owner --keep-directory-symlink \
+			--no-wildcards --exclude=./.pikeinfo -X "$TMP/exclude"
+
+		# On upgrade, remove what the old version had and the new one does not.
+		if [ -f "$old" ]; then
+			comm -23 "$old" "$TMP/manifest" >"$TMP/stale"
+			save_modified_backups "$name" "$TMP/stale"
+			remove_paths "$TMP/stale" "$name"
+		fi
+
+		mkdir -p "$DB/$name"
+		printf '%s\n' "$depends" >"$DB/$name/depends.new"
+		cp "$TMP/backup.db" "$DB/$name/backup.new"
+		cp "$TMP/manifest" "$DB/$name/manifest.new"
+		printf '%s\n' "$version-$release" >"$DB/$name/version.new"
+		for p in depends backup manifest version; do
+			mv "$DB/$name/$p.new" "$DB/$name/$p"
+		done
+		msg "installed $name $version-$release"
+	)
+}
+
+cmd_remove() {
+	[ $# -eq 1 ] || die "usage: pike remove <name>"
+	need_root
+	(
+		local name=$1 d users=()
+		lock
+		is_installed "$name" || die "$name is not installed"
+		for d in "$DB"/*/depends; do
+			[ -f "$d" ] || continue
+			if tr ' ' '\n' <"$d" | grep -qxF -- "$name"; then
+				d=${d%/depends}
+				users+=("${d##*/}")
+			fi
+		done
+		[ "${#users[@]}" -eq 0 ] || die "$name is needed by: ${users[*]}"
+
+		cp "$DB/$name/manifest" "$TMP/manifest"
+		msg "removing $name $(cat "$DB/$name/version")"
+		save_modified_backups "$name" "$TMP/manifest"
+		remove_paths "$TMP/manifest" "$name"
+		rm -rf "${DB:?}/$name"
+		msg "removed $name"
+	)
+}
+
+# Print the build order for a package, dependencies first
+# (depth-first topological sort). Fails on dependency cycles.
+resolve() {
+	local -A state=()
+	local order=()
+	visit() {
+		local n=$1 path=$2 d deps
+		case ${state[$n]:-} in
+		finished) return 0 ;;
+		visiting) die "dependency cycle: $path -> $n" ;;
+		esac
+		state[$n]=visiting
+		deps=$(recipe_depends "$n")
+		for d in $deps; do
+			visit "$d" "${path:+$path -> }$n"
+		done
+		state[$n]=finished
+		order+=("$n")
+	}
+	visit "$1" ""
+	printf '%s\n' "${order[@]}"
+}
+
+cmd_deps() {
+	[ $# -eq 1 ] || die "usage: pike deps <name>"
+	local n order
+	order=$(resolve "$1")
+	for n in $order; do
+		if is_installed "$n"; then
+			printf '%s (installed)\n' "$n"
+		else
+			printf '%s\n' "$n"
+		fi
+	done
+}
+
+cmd_add() {
+	[ $# -eq 1 ] || die "usage: pike add <name>"
+	need_root
+	local n order
+	order=$(resolve "$1")
+	for n in $order; do
+		if is_installed "$n"; then
+			continue
+		fi
+		if [ ! -f "$(pkgfile "$n")" ]; then
+			cmd_build "$n"
+		fi
+		cmd_install "$n"
+	done
+}
+
+cmd_list() {
+	local d
+	for d in "$DB"/*/version; do
+		[ -f "$d" ] || continue
+		d=${d%/version}
+		printf '%s %s\n' "${d##*/}" "$(cat "$d/version")"
+	done
+}
+
+cmd_files() {
+	[ $# -eq 1 ] || die "usage: pike files <name>"
+	is_installed "$1" || die "$1 is not installed"
+	sed 's|^|/|' "$DB/$1/manifest"
+}
+
+cmd_owns() {
+	[ $# -eq 1 ] || die "usage: pike owns <path>"
+	local p=$1 dir m found=0 candidates
+	candidates=("${p#/}")
+	# Follow directory symlinks such as /bin -> usr/bin.
+	if [ "$ROOT" = / ] && dir=$(realpath -e -- "$(dirname -- "$p")" 2>/dev/null); then
+		dir=${dir#/}
+		candidates+=("${dir:+$dir/}$(basename -- "$p")")
+	fi
+	for m in "$DB"/*/manifest; do
+		[ -f "$m" ] || continue
+		for p in "${candidates[@]}"; do
+			if grep -qxF -e "$p" -e "$p/" "$m"; then
+				m=${m%/manifest}
+				printf '%s\n' "${m##*/}"
+				found=1
+				break
+			fi
+		done
+	done
+	[ "$found" -eq 1 ] || die "no package owns $1"
+}
+
+cmd_checksum() {
+	[ $# -eq 1 ] || die "usage: pike checksum <name>"
+	(
+		load_recipe "$1"
+		local s f sum
+		printf 'sha256=(\n'
+		for s in "${source[@]}"; do
+			f=$(fetch "$s")
+			sum=$(sha256sum "$f")
+			printf '\t%s\n' "${sum%% *}"
+		done
+		printf ')\n'
+	)
+}
+
+[ $# -gt 0 ] || {
+	usage >&2
+	exit 1
+}
+cmd=$1
+shift
+case $cmd in
+build | install | add | remove | list | files | owns | deps | checksum) "cmd_$cmd" "$@" ;;
+-h | --help | help) usage ;;
+*)
+	usage >&2
+	exit 1
+	;;
+esac

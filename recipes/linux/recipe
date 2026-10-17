@@ -1,0 +1,24 @@
+# linux - the kernel, with everything built in, no modules or initramfs
+# https://www.kernel.org/
+#
+# config is the v0.3 configuration brought to this version with
+# 'make olddefconfig', plus the options listed in docs/kernel.md.
+
+name=linux
+version=6.18.57
+release=1
+depends=()
+source=("https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$version.tar.xz" config)
+sha256=(
+	5bd9acdc82ec5efc3790ae840e5aaa40dfde7efff261cf6dde902dc570acf98c
+	52b2ab10865b38040f70277d28fdaabfa8b8808eae584af4655f6ffb9cac71c1
+)
+
+build() {
+	cd "linux-$version"
+	cp ../config .config
+	make olddefconfig
+	make -j"$(nproc)" bzImage
+	install -D -m 644 arch/x86/boot/bzImage "$PKG/boot/bzImage"
+	install -D -m 644 .config "$PKG/boot/.config"
+}

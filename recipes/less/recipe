@@ -1,0 +1,16 @@
+# less - terminal pager
+# https://www.greenwoodsoftware.com/less/
+
+name=less
+version=679
+release=1
+depends=()
+source=("https://www.greenwoodsoftware.com/less/less-$version.tar.gz")
+sha256=(9b68820c34fa8a0af6b0e01b74f0298bcdd40a0489c61649b47058908a153d78)
+
+build() {
+	cd "less-$version"
+	./configure --prefix=/usr --sysconfdir=/etc
+	make
+	make DESTDIR="$PKG" install
+}

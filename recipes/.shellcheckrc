@@ -1,0 +1,4 @@
+# Recipes are sourced by pike, which reads their variables (SC2034)
+# and runs build() with errexit set, so a failing cd stops it (SC2164).
+shell=bash
+disable=SC2034,SC2164

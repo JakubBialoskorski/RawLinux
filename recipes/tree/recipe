@@ -1,0 +1,16 @@
+# tree - list directory contents as a tree
+# https://oldmanprogrammer.net/source.php?dir=projects/tree
+
+name=tree
+version=2.2.1
+release=1
+depends=()
+source=("https://oldmanprogrammer.net/tar/tree/tree-$version.tgz")
+sha256=(68ac45dc78c0c311ada06200ffc3c285e74223ba208061f8d15ffac25e44b2ec)
+
+build() {
+	cd "tree-$version"
+	make
+	# DESTDIR in this Makefile is the binary directory, not a staging root.
+	make PREFIX=/usr DESTDIR="$PKG/usr/bin" MANDIR="$PKG/usr/share/man" install
+}

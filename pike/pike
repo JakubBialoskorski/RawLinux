@@ -396,6 +396,7 @@ cmd_remove() {
 	need_root
 	(
 		local name=$1 d users=()
+		lock
 		is_installed "$name" || die "$name is not installed"
 		for d in "$DB"/*/depends; do
 			[ -f "$d" ] || continue
@@ -406,7 +407,6 @@ cmd_remove() {
 		done
 		[ "${#users[@]}" -eq 0 ] || die "$name is needed by: ${users[*]}"
 
-		lock
 		cp "$DB/$name/manifest" "$TMP/manifest"
 		msg "removing $name $(cat "$DB/$name/version")"
 		save_modified_backups "$name" "$TMP/manifest"

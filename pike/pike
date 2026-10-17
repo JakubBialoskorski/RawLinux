@@ -217,10 +217,8 @@ cmd_build() {
 	)
 }
 
-# Print the value of a key from a package's .pikeinfo.
-pkginfo() {
-	tar -xOJf "$1" ./.pikeinfo | sed -n "s/^$2=//p"
-}
+# Print the value of a key from the .pikeinfo extracted to $TMP.
+pkginfo() { sed -n "s/^$1=//p" "$TMP/pikeinfo"; }
 
 # Paths inside a package, relative to $ROOT; directories end with '/'.
 pkg_manifest() {
@@ -293,12 +291,16 @@ cmd_install() {
 		esac
 		[ -f "$file" ] || die "no package $file, run 'pike build $1' first"
 
+		# Dependencies are checked under the lock, so a parallel
+		# 'pike remove' cannot take one away in the meantime.
+		lock
+		tar -xOJf "$file" ./.pikeinfo >"$TMP/pikeinfo" 2>/dev/null || die "$file is not a pike package"
 		local name version release depends backup
-		name=$(pkginfo "$file" name)
-		version=$(pkginfo "$file" version)
-		release=$(pkginfo "$file" release)
-		depends=$(pkginfo "$file" depends)
-		backup=$(pkginfo "$file" backup)
+		name=$(pkginfo name)
+		version=$(pkginfo version)
+		release=$(pkginfo release)
+		depends=$(pkginfo depends)
+		backup=$(pkginfo backup)
 		[ -n "$name" ] || die "$file is not a pike package"
 
 		# Split the lists without glob expansion.
@@ -310,7 +312,6 @@ cmd_install() {
 		done
 		[ "${#missing[@]}" -eq 0 ] || die "$name needs: ${missing[*]}"
 
-		lock
 		local old=$DB/$name/manifest owner p conflicts=0
 		pkg_manifest "$file" >"$TMP/manifest"
 		if grep -qE '^/|(^|/)\.\.(/|$)' "$TMP/manifest"; then

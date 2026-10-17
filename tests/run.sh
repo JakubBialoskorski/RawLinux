@@ -120,6 +120,19 @@ test_sha256_mismatch() {
 	check test ! -e "$PIKE_CACHE/packages/hello#1-1.tar.xz"
 }
 
+test_sources_cached_per_package() {
+	recipe a 1 "" "" usr/bin/a=a
+	recipe b 1 "" "" usr/bin/b=b
+	# Give both sources the same file name, like tag archives from GitHub.
+	for n in a b; do
+		mkdir -p "$T/src/$n"
+		mv "$T/src/$n-1.tar.gz" "$T/src/$n/v1.tar.gz"
+		sed -i "s|$T/src/$n-1.tar.gz|$T/src/$n/v1.tar.gz|" "$PIKE_RECIPES/$n/recipe"
+	done
+	check pike build a
+	check pike build b
+}
+
 test_build_failure_stops() {
 	recipe hello 1 "" "false; cp -a . \"\$PKG\"" usr/bin/hello=hi
 	fails pike build hello

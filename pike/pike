@@ -93,14 +93,16 @@ pkgfile() {
 
 # A source is either a URL, downloaded into the cache once,
 # or a file stored next to the recipe. Prints the local path.
+# Downloads are kept per package, since archives from different
+# projects often share a file name such as v1.0.tar.gz.
 fetch() {
 	local src=$1 dest
 	case $src in
 	*://*)
-		dest=$PIKE_CACHE/sources/${src##*/}
+		dest=$PIKE_CACHE/sources/$name/${src##*/}
 		if [ ! -f "$dest" ]; then
 			msg "fetching $src"
-			mkdir -p "$PIKE_CACHE/sources"
+			mkdir -p "${dest%/*}"
 			curl -fL --retry 3 -o "$dest.part" "$src" || die "download failed: $src"
 			mv "$dest.part" "$dest"
 		fi

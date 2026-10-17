@@ -2,9 +2,9 @@
 .idea
 
 # Internals
-linux/*
+/linux/*
 initramfs/*
-linux/
+/linux/
 initramfs/
 initramfs.cpio
 initramfs.cpio.gz

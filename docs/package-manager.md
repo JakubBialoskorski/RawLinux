@@ -15,6 +15,7 @@ This puts `pike` in `/usr/bin` and recipes in `/usr/share/pike/recipes`.
 ### Usage
 
 ```
+pike adopt
 pike add less
 pike list
 pike owns /bin/less
@@ -22,7 +23,7 @@ pike files less
 pike remove less
 ```
 
-`add` builds and installs a package with its dependencies. `build`, `install`, `deps` and `checksum` do single steps, see `pike help`.
+`adopt` records every file that no package owns as the `base-system` package, so `owns` works for the hand-built system too. Run it again to pick up new files. `add` builds and installs a package with its dependencies. `build`, `install`, `deps` and `checksum` do single steps, see `pike help`.
 
 ### Recipes
 
@@ -51,8 +52,10 @@ Config files go to `backup=(etc/foo.conf)`. On upgrade, a locally changed file i
 ### How it works
 
 - built packages: `/var/cache/pike/packages/<name>#<version>-<release>.tar.xz`
-- database: `/var/lib/pike/db/<name>/{version,depends,backup,manifest}`, plain text
+- database: `/var/lib/pike/db/<name>/{version,depends,backup,manifest,takeover}`, plain text
 - install refuses files owned by another package and untracked files already on disk
+- files of `base-system` are taken over by the package; the originals are kept in `/var/lib/pike/base` and come back when the package is removed or stops shipping them
+- `adopt` skips `/home`, `/root`, `/tmp`, `/var/tmp`, `/var/cache` and other filesystems; `base-system` cannot be removed
 - upgrade removes files the new version no longer ships
 - `/bin`, `/sbin`, `/lib` and `/lib64` are symlinks to `/usr`, so packages install into `/usr`
 - `ROOT=/mnt/target pike install less` installs into another root
@@ -66,4 +69,4 @@ Config files go to `backup=(etc/foo.conf)`. On upgrade, a locally changed file i
 - no signatures, sources are checked only against sha256 from the recipe
 - upgrade is not atomic
 - `build()` runs as root, without a sandbox
-- files of the base system are not tracked, so a package shipping a file that is already in the image conflicts with it
+- files created after `pike adopt` are untracked until it runs again, so a package shipping one conflicts with it

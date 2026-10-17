@@ -127,7 +127,15 @@ verify() {
 		file=$(fetch "${source[$i]}")
 		sum=$(sum_of "$file")
 		if [ "$sum" != "${sha256[$i]}" ]; then
-			die "sha256 mismatch for ${source[$i]}: expected ${sha256[$i]}, got $sum"
+			warn "sha256 mismatch for ${source[$i]}: expected ${sha256[$i]}, got $sum"
+			# Move a bad download aside so the next build fetches it again.
+			case ${source[$i]} in
+			*://*)
+				mv "$file" "$file.bad"
+				warn "moved the download to $file.bad"
+				;;
+			esac
+			exit 1
 		fi
 	done
 }

@@ -114,10 +114,15 @@ test_build_and_install() {
 
 test_sha256_mismatch() {
 	recipe hello 1 "" "" usr/bin/hello=hi
+	cp "$PIKE_RECIPES/hello/recipe" "$T/good"
 	sed -i 's/^sha256=(.*/sha256=(0000)/' "$PIKE_RECIPES/hello/recipe"
 	fails pike build hello
 	check out_has "sha256 mismatch"
 	check test ! -e "$PIKE_CACHE/packages/hello#1-1.tar.xz"
+	# The bad download is moved aside, so a fixed recipe builds.
+	check test -f "$PIKE_CACHE/sources/hello/hello-1.tar.gz.bad"
+	cp "$T/good" "$PIKE_RECIPES/hello/recipe"
+	check pike build hello
 }
 
 test_sources_cached_per_package() {

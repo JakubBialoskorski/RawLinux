@@ -2,7 +2,8 @@
 # systems, the network, the users and groups and the environment of
 # login shells
 #
-# All of them are backup files, so local changes survive upgrades.
+# All of them are backup files, so local changes survive upgrades,
+# except os-release, which names the release.
 # The users and groups are the system ones of the LFS book, without the
 # messagebus user, as there is no D-Bus, and with the uucp group, which
 # OpenRC gives /run/lock to. Every password is locked: set the root
@@ -11,10 +12,10 @@
 
 name=base-files
 version=1
-release=2
+release=3
 depends=(shadow)
 source=(inittab fstab hostname hosts issue profile network protocols
-	passwd shadow group gshadow shells)
+	passwd shadow group gshadow shells os-release)
 sha256=(
 	bc11c5c681bdb51a1ab25d43bd6eee0ee1ae27044bfacd4daeea81e1dd9c98d9
 	c7d7a386751a101a1e3a4f0403d0085a7515c9c24cd780cbedf7a77f2381f804
@@ -29,6 +30,7 @@ sha256=(
 	29f7fe8a7bdcc18b3948f577627e6383a865086495f1472db0960287a7acbe2c
 	1669f4e1e972d0d40e55d827a610fc99259f51522bbcca2f61e8285f84a2ba20
 	9e81efd1e25e824fbbcbc631784e42b9385580cc230eaaa2f931a410516137c2
+	620e939ed716055754227c8aabae12bb120c206e0e52e5951ebf058f870f02a6
 )
 backup=(etc/inittab etc/fstab etc/hostname etc/hosts etc/issue etc/profile
 	etc/protocols etc/passwd etc/shadow etc/group etc/gshadow etc/shells
@@ -41,4 +43,6 @@ build() {
 		passwd group shells "$PKG/etc/"
 	install -m 600 shadow gshadow "$PKG/etc/"
 	install -m 644 network "$PKG/etc/conf.d/"
+	install -D -m 644 os-release "$PKG/usr/lib/os-release"
+	ln -s ../usr/lib/os-release "$PKG/etc/os-release"
 }

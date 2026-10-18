@@ -525,9 +525,10 @@ test_base_files_recipe() {
 	# Every user has a shadow entry and every group a gshadow entry.
 	check test "$(cut -d: -f1 "$ROOT/etc/passwd")" = "$(cut -d: -f1 "$ROOT/etc/shadow")"
 	check test "$(grep -v '^#' "$ROOT/etc/group" | cut -d: -f1)" = "$(cut -d: -f1 "$ROOT/etc/gshadow")"
-	# Every file it installs is a backup file.
+	check test "$(readlink -f "$ROOT/etc/os-release")" = "$ROOT/usr/lib/os-release"
+	# Every file it installs is a backup file, but os-release.
 	pike files base-files
-	grep -v '/$' "$T/out" | sed 's|^/||' >"$T/files"
+	grep -v -e '/$' -e 'os-release$' "$T/out" | sed 's|^/||' >"$T/files"
 	cut -d' ' -f2- "$ROOT/var/lib/pike/db/base-files/backup" | sort >"$T/backup"
 	check cmp "$T/files" "$T/backup"
 }

@@ -5,8 +5,9 @@
 
 name=e2fsprogs
 version=1.47.4
-release=1
-depends=(pkgconf util-linux)
+release=2
+depends=(util-linux)
+makedepends=(pkgconf)
 source=("https://www.kernel.org/pub/linux/kernel/people/tytso/e2fsprogs/v$version/e2fsprogs-$version.tar.xz")
 sha256=(fd5bf388cbdbe006a3d3b318d983b2948382440acc85a87f1e7d108653e8db0b)
 backup=(etc/mke2fs.conf)

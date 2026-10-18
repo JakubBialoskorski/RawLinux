@@ -76,7 +76,7 @@ load_recipe() {
 	local f=$PIKE_RECIPES/$1/recipe
 	[ -f "$f" ] || die "no recipe for '$1' in $PIKE_RECIPES"
 	name='' version='' release=''
-	depends=() source=() sha256=() backup=()
+	depends=() makedepends=() source=() sha256=() backup=()
 	# shellcheck source=/dev/null
 	. "$f"
 	[ "$name" = "$1" ] || die "$f: name must be '$1'"
@@ -86,10 +86,12 @@ load_recipe() {
 	declare -F build >/dev/null || die "$f: build() is not defined"
 }
 
+# Build dependencies come first, they have to be installed before the
+# package is built. Only depends is recorded when it is installed.
 recipe_depends() {
 	(
 		load_recipe "$1"
-		printf '%s\n' "${depends[@]}"
+		printf '%s\n' "${makedepends[@]}" "${depends[@]}"
 	)
 }
 

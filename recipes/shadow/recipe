@@ -9,8 +9,9 @@
 
 name=shadow
 version=4.20.3
-release=1
-depends=(libxcrypt pkgconf)
+release=2
+depends=(libxcrypt)
+makedepends=(pkgconf)
 source=("https://github.com/shadow-maint/shadow/releases/download/$version/shadow-$version.tar.xz"
 	useradd)
 sha256=(

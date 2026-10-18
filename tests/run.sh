@@ -436,6 +436,20 @@ test_base_system_cannot_be_removed() {
 	check has usr/bin/sh
 }
 
+test_makedepends_are_not_recorded() {
+	recipe tool 1 "" "" usr/bin/tool=t
+	recipe app 1 "" "" usr/bin/app=a
+	echo 'makedepends=(tool)' >>"$PIKE_RECIPES/app/recipe"
+	pike deps app
+	check test "$(cat "$T/out")" = "$(printf 'tool\napp')"
+	check pike add app
+	check has usr/bin/tool
+	check test "$(cat "$ROOT/var/lib/pike/db/app/depends")" = ""
+	# Nothing needs the build tool once app is built.
+	check pike remove tool
+	check has usr/bin/app
+}
+
 test_repo_recipes_resolve() {
 	local r
 	PIKE_RECIPES=$REPO/recipes
@@ -443,9 +457,10 @@ test_repo_recipes_resolve() {
 		r=${r%/recipe}
 		check pike deps "${r##*/}"
 	done
-	# sysvinit replaces /sbin/init, so it goes in just before OpenRC, which it runs.
+	# Build tools come first, and sysvinit replaces /sbin/init, so it goes
+	# in just before OpenRC, which it runs.
 	check pike deps openrc
-	check test "$(tr '\n' ' ' <"$T/out")" = "libxcrypt pkgconf shadow base-files util-linux e2fsprogs inetutils python ninja meson sysvinit openrc "
+	check test "$(tr '\n' ' ' <"$T/out")" = "python ninja meson pkgconf libxcrypt shadow base-files util-linux e2fsprogs inetutils sysvinit openrc "
 }
 
 test_base_files_recipe() {

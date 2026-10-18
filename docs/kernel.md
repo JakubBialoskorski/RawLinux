@@ -31,3 +31,11 @@ The build uses all CPUs with `make -j$(nproc)`. The 6.14.0-rc2 kernel from v0.3 
 | `MAGIC_SYSRQ` | emergency sync, remount read-only and reboot |
 
 After changing the config, update its sum in the recipe with `pike checksum linux`.
+
+### Fallback
+
+The v0.3 kernel stays as `/boot/bzImage-6.14.0-rc2`, with the GRUB entry `RawLinux 6.14.0-rc2 (fallback)`. It has no `MULTIUSER`, so `login` fails there with `setgid: Function not implemented`, and the entry starts Bash as process 1 with `init=/bin/bash`, root mounted read-write. There is no init to shut down, so leave it with:
+
+```
+mount -o remount,ro / && reboot -f
+```

@@ -508,12 +508,13 @@ test_repo_recipes_resolve() {
 	# Build tools come first, and sysvinit replaces /sbin/init, so it goes
 	# in just before OpenRC, which it runs.
 	check pike deps openrc
-	check test "$(tr '\n' ' ' <"$T/out")" = "python ninja meson pkgconf libxcrypt shadow base-files util-linux e2fsprogs inetutils sysvinit openrc "
+	check test "$(tr '\n' ' ' <"$T/out")" = "python ninja meson pkgconf libxcrypt shadow dhcpcd base-files util-linux e2fsprogs inetutils sysvinit openrc "
 }
 
 test_base_files_recipe() {
-	# A stand-in for shadow, so the test does not build it.
+	# Stand-ins for shadow and dhcpcd, so the test does not build them.
 	recipe shadow 1 "" "" usr/bin/login=login
+	recipe dhcpcd 1 "" "" usr/sbin/dhcpcd=dhcpcd
 	cp -r "$REPO/recipes/base-files" "$PIKE_RECIPES/"
 	check pike add base-files
 	check has etc/inittab

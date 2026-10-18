@@ -6,7 +6,8 @@
 # modules (kmod) and binfmt (the kernel has no binfmt_misc). The scripts
 # stay in /etc/init.d. /etc/conf.d/network comes from base-files.
 # sysvinit comes last in depends, so the system switches to it only
-# once OpenRC is built.
+# once OpenRC is built. The banner at boot names RawLinux instead of
+# the kernel.
 
 name=openrc
 version=0.64.1
@@ -21,7 +22,8 @@ build() {
 	meson setup build "openrc-$version" --buildtype=release \
 		--prefix=/usr --bindir=bin --sbindir=sbin --libdir=lib \
 		-Dnewnet=true -Dpam=false -Daudit=disabled -Dselinux=disabled \
-		-Dbash-completions=false -Dzsh-completions=false
+		-Dbash-completions=false -Dzsh-completions=false \
+		-Dbranding='"RawLinux"'
 	ninja -C build
 	DESTDIR="$PKG" meson install -C build --no-rebuild
 	install -m 755 "openrc-$version/support/sysvinit/halt.sh" "$PKG/usr/sbin/"

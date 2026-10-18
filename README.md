@@ -22,6 +22,12 @@ qemu-system-x86_64 -m 2G -drive file=disk.img,format=qcow2
 
 On Linux, add `-enable-kvm -smp 4` to run it at hardware speed, which needs access to `/dev/kvm`. Add `-nographic` to log in on the serial console in the terminal instead.
 
+RawLinux boots from IDE, SATA (AHCI), NVMe and virtio disks and gets its network address with DHCP, so faster paravirtual devices work too:
+
+```
+qemu-system-x86_64 -enable-kvm -smp 4 -m 2G -drive file=disk.img,format=qcow2,if=virtio -nic user,model=virtio-net-pci
+```
+
 Log in as `root` with password `rawlinux` and change it with `passwd`.
 
 ### Package manager
@@ -31,6 +37,8 @@ RawLinux builds its own packages with [pike](docs/package-manager.md), from the 
 ```
 pike add less
 ```
+
+`pike upgrade` rebuilds what changed in the recipes.
 
 ### Documentation
 
@@ -65,6 +73,10 @@ pike add less
 [x] add init system (OpenRC)
 
 [x] add users and login
+
+[x] get the network address with DHCP
+
+[x] boot from SATA, NVMe and virtio disks
 
 [ ] add default graphical environment
 

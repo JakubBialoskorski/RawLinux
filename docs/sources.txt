@@ -45,3 +45,4 @@ sysvinit: https://github.com/slicer69/sysvinit/releases
 OpenRC: https://github.com/OpenRC/openrc/releases
 libxcrypt: https://github.com/besser82/libxcrypt/releases
 shadow: https://github.com/shadow-maint/shadow/releases
+dhcpcd: https://github.com/NetworkConfiguration/dhcpcd/releases

@@ -42,6 +42,8 @@ usage: pike <command> [args]
   build <name>         build a package from its recipe
   install <name|file>  install or upgrade a built package
   add <name>           build and install a package with its dependencies
+  outdated             list installed packages that differ from their recipes
+  upgrade              build and install every outdated package
   adopt                record untracked files as the base-system package
   remove <name>        remove an installed package
   list                 list installed packages
@@ -92,6 +94,14 @@ recipe_depends() {
 	(
 		load_recipe "$1"
 		printf '%s\n' "${makedepends[@]}" "${depends[@]}"
+	)
+}
+
+# The version and release a recipe would build, as 'pike list' shows it.
+recipe_version() {
+	(
+		load_recipe "$1"
+		printf '%s\n' "$version-$release"
 	)
 }
 
@@ -539,6 +549,53 @@ cmd_add() {
 	done
 }
 
+# Print the installed packages whose recipe builds another version or
+# release. Packages without a recipe, such as base-system, are left out.
+outdated() {
+	local d n
+	for d in "$DB"/*/version; do
+		[ -f "$d" ] || continue
+		d=${d%/version}
+		n=${d##*/}
+		[ -f "$PIKE_RECIPES/$n/recipe" ] || continue
+		[ "$(cat "$d/version")" = "$(recipe_version "$n")" ] || printf '%s\n' "$n"
+	done
+}
+
+cmd_outdated() {
+	[ $# -eq 0 ] || die "usage: pike outdated"
+	local n
+	for n in $(outdated); do
+		printf '%s %s -> %s\n' "$n" "$(cat "$DB/$n/version")" "$(recipe_version "$n")"
+	done
+}
+
+# 'pike add' leaves installed packages alone, this rebuilds the outdated
+# ones, dependencies first. A dependency a newer recipe brings in is
+# installed as 'pike add' would do it.
+cmd_upgrade() {
+	[ $# -eq 0 ] || die "usage: pike upgrade"
+	need_root
+	local n list order
+	list=$(outdated)
+	[ -n "$list" ] || {
+		msg "nothing to upgrade"
+		return 0
+	}
+	# Each order lists dependencies first, and a name repeated in a later
+	# one is up to date by then, so it is skipped.
+	order=$(for n in $list; do resolve "$n"; done)
+	for n in $order; do
+		if is_installed "$n" && [ "$(cat "$DB/$n/version")" = "$(recipe_version "$n")" ]; then
+			continue
+		fi
+		if [ ! -f "$(pkgfile "$n")" ]; then
+			cmd_build "$n"
+		fi
+		cmd_install "$n"
+	done
+}
+
 # Record every file that no package owns as the base-system package,
 # so 'owns' works for the hand-built system and recipes can take its
 # files over one by one. Running it again picks up new untracked files
@@ -623,7 +680,7 @@ cmd_checksum() {
 cmd=$1
 shift
 case $cmd in
-build | install | add | adopt | remove | list | files | owns | deps | checksum) "cmd_$cmd" "$@" ;;
+build | install | add | outdated | upgrade | adopt | remove | list | files | owns | deps | checksum) "cmd_$cmd" "$@" ;;
 -h | --help | help) usage ;;
 *)
 	usage >&2

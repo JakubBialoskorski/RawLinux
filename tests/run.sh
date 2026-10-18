@@ -450,6 +450,24 @@ test_makedepends_are_not_recorded() {
 	check has usr/bin/app
 }
 
+test_outdated_and_upgrade() {
+	recipe hello 1 "" "" usr/bin/hello=1
+	check pike add hello
+	pike outdated
+	check test ! -s "$T/out"
+	# A new version that brings in a dependency.
+	recipe lib 1 "" "" usr/lib/lib=l
+	recipe hello 2 "lib" "" usr/bin/hello=2
+	pike outdated
+	check test "$(cat "$T/out")" = "hello 1-1 -> 2-1"
+	check pike upgrade
+	pike list
+	check test "$(cat "$T/out")" = "$(printf 'hello 2-1\nlib 1-1')"
+	check test "$(cat "$ROOT/usr/bin/hello")" = 2
+	check pike upgrade
+	check out_has "nothing to upgrade"
+}
+
 test_repo_recipes_resolve() {
 	local r
 	PIKE_RECIPES=$REPO/recipes

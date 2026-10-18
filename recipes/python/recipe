@@ -1,0 +1,22 @@
+# python - the Python interpreter, needed to build ninja and to run meson
+# https://www.python.org/
+#
+# expat and mpdecimal are not in the system, so Python uses its bundled
+# copies. There is no libffi, sqlite or readline: ctypes, sqlite3 and
+# readline are left out, the build lists them as missing. bzip2 is only
+# a static library without -fPIC in /usr/local, so bz2 is left out too.
+
+name=python
+version=3.14.8
+release=1
+depends=()
+source=("https://www.python.org/ftp/python/$version/Python-$version.tar.xz")
+sha256=(c2215904f02b175596dc49351585104f4bc20341e1c47378b26a2c274360ce73)
+
+build() {
+	cd "Python-$version"
+	./configure --prefix=/usr --enable-shared --without-static-libpython \
+		--without-ensurepip --disable-test-modules py_cv_module__bz2=n/a
+	make -j"$(nproc)"
+	make DESTDIR="$PKG" install
+}

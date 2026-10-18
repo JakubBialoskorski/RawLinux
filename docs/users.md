@@ -23,7 +23,7 @@ On the v0.3 image, pike keeps the old `/etc/passwd`, which has only root, and pu
 
 ```
 mv /etc/passwd.new /etc/passwd
-echo 'root:rawlinux' | chpasswd
+echo 'root:<password>' | chpasswd
 ```
 
 ### Users

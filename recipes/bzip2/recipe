@@ -1,0 +1,31 @@
+# bzip2 - bzip2 compression, the program and the shared libbz2
+# https://sourceware.org/bzip2/
+#
+# The hand-built bzip2 in /usr/local has only a static libbz2.a, built
+# without -fPIC, which nothing shared can link, so Python had no bz2
+# module. Built as in the LFS book: the shared library from its own
+# Makefile, bzip2 linked against it and no static library.
+
+name=bzip2
+version=1.0.8
+release=1
+depends=()
+source=("https://sourceware.org/pub/bzip2/bzip2-$version.tar.gz")
+sha256=(ab5a03176ee106d3f0fa90e381da478ddae405918153cca248e682cd0c4a2269)
+
+build() {
+	cd "bzip2-$version"
+	# Relative links to bzgrep and the others, man pages in /usr/share.
+	sed -i 's@\(ln -s -f \)$(PREFIX)/bin/@\1@' Makefile
+	sed -i 's@(PREFIX)/man@(PREFIX)/share/man@g' Makefile
+	make -f Makefile-libbz2_so
+	make clean
+	make
+	make PREFIX="$PKG/usr" install
+	cp -a libbz2.so.* "$PKG/usr/lib/"
+	ln -s "libbz2.so.$version" "$PKG/usr/lib/libbz2.so"
+	cp bzip2-shared "$PKG/usr/bin/bzip2"
+	ln -sf bzip2 "$PKG/usr/bin/bunzip2"
+	ln -sf bzip2 "$PKG/usr/bin/bzcat"
+	rm "$PKG/usr/lib/libbz2.a"
+}

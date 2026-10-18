@@ -209,11 +209,20 @@ test_backup_modified_is_kept() {
 	check pike install hello
 	check contains "$ROOT/etc/hello.conf" changed
 	check contains "$ROOT/etc/hello.conf.new" default2
-	# The kept file is still modified compared to what version 2 ships.
+	# A release that ships the same file again leaves the local one alone,
+	# without another .new.
 	rm "$ROOT/etc/hello.conf.new"
+	BACKUP=etc/hello.conf recipe hello 3 "" "" etc/hello.conf=default2
+	check pike build hello
 	check pike install hello
 	check contains "$ROOT/etc/hello.conf" changed
-	check has etc/hello.conf.new
+	check hasnt etc/hello.conf.new
+	# One that ships a new default does.
+	BACKUP=etc/hello.conf recipe hello 4 "" "" etc/hello.conf=default4
+	check pike build hello
+	check pike install hello
+	check contains "$ROOT/etc/hello.conf" changed
+	check contains "$ROOT/etc/hello.conf.new" default4
 }
 
 test_backup_matching_needs_no_new_file() {

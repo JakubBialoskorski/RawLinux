@@ -395,7 +395,8 @@ cmd_install() {
 
 		# Backup files that still match the version shipped last time
 		# are replaced. Local changes are kept and the new version goes
-		# next to them as <file>.new.
+		# next to them as <file>.new, unless the package ships the same
+		# version as last time.
 		local new cur orig
 		: >"$TMP/exclude"
 		: >"$TMP/backup.db"
@@ -411,8 +412,10 @@ cmd_install() {
 				if [ -n "$orig" ] && [ "$cur" = "$orig" ]; then
 					continue
 				fi
-				cp "$TMP/backup" "$ROOT$p.new"
-				msg "kept modified /$p, new version saved as /$p.new"
+				if [ "$new" != "$orig" ]; then
+					cp "$TMP/backup" "$ROOT$p.new"
+					msg "kept modified /$p, new version saved as /$p.new"
+				fi
 			fi
 			printf './%s\n' "$p" >>"$TMP/exclude"
 		done

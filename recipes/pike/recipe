@@ -1,0 +1,20 @@
+# pike - the package manager, with the recipes it builds from
+# https://github.com/JakubBialoskorski/RawLinux
+#
+# pike packages itself: the script that runs the build and the recipe
+# tree it reads, so 'pike upgrade' run from a newer checkout of the
+# repository brings both to the system. The first copy comes from
+# 'make install' in pike/, this package takes its files over.
+
+name=pike
+version=0.5
+release=1
+depends=()
+source=()
+sha256=()
+
+build() {
+	install -D -m 755 "$PIKE_SELF" "$PKG/usr/bin/pike"
+	install -d "$PKG/usr/share/pike/recipes"
+	cp -R "$PIKE_RECIPES/." "$PKG/usr/share/pike/recipes/"
+}

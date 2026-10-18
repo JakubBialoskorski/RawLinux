@@ -490,6 +490,14 @@ test_strip_base_system() {
 	fails test -e "$ROOT/usr/bin/hello.pikestrip"
 }
 
+test_pike_recipe_packages_itself() {
+	PIKE_RECIPES=$REPO/recipes
+	check pike build pike
+	tar -xJf "$PIKE_CACHE"/packages/pike#*.tar.xz -C "$T/work"
+	check cmp "$T/work/usr/bin/pike" "$PIKE"
+	check cmp "$T/work/usr/share/pike/recipes/pike/recipe" "$REPO/recipes/pike/recipe"
+}
+
 test_repo_recipes_resolve() {
 	local r
 	PIKE_RECIPES=$REPO/recipes

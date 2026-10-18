@@ -16,9 +16,11 @@ export LC_ALL=C
 
 ROOT=${ROOT:-/}
 ROOT=${ROOT%/}/
-PIKE_RECIPES=${PIKE_RECIPES:-/usr/share/pike/recipes}
+PIKE_RECIPES=$(realpath -m "${PIKE_RECIPES:-/usr/share/pike/recipes}")
 PIKE_CACHE=${PIKE_CACHE:-/var/cache/pike}
 PIKE_WORK=${PIKE_WORK:-/var/tmp/pike}
+# The script itself, for the recipe of pike, which packages it.
+PIKE_SELF=$(realpath -e "$0")
 DB=${ROOT}var/lib/pike/db
 LOCK=${ROOT}var/lib/pike/lock
 ORIG=${ROOT}var/lib/pike/base
@@ -196,7 +198,7 @@ cmd_build() {
 		SRC=$work/src
 		PKG=$work/pkg
 		mkdir -p "$SRC" "$PKG"
-		export SRC PKG
+		export SRC PKG PIKE_SELF
 
 		for s in "${source[@]}"; do
 			f=$(fetch "$s")

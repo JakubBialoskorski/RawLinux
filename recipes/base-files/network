@@ -1,4 +1,5 @@
-# /etc/conf.d/network - eth0 on QEMU user networking,
-# brought up by the OpenRC network service with ip(8)
-ip_eth0="10.0.2.15/24"
-defaultiproute="via 10.0.2.2"
+# /etc/conf.d/network - static setup for the OpenRC network service
+# dhcpcd configures eth0 by default. For a static address, as on QEMU
+# user networking, run 'rc-update del dhcpcd default' and set:
+#ip_eth0="10.0.2.15/24"
+#defaultiproute="via 10.0.2.2"

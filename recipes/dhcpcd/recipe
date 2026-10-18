@@ -1,0 +1,32 @@
+# dhcpcd - DHCP client, gets an address, a route and DNS servers for
+# each network interface
+# https://github.com/NetworkConfiguration/dhcpcd
+#
+# Configured as Gentoo does by default: without privilege separation,
+# which wants a user of its own and seccomp in the kernel, and without
+# udev. It writes /etc/resolv.conf itself. dhcpcd.initd is the OpenRC
+# service, started in the default runlevel.
+
+name=dhcpcd
+version=10.5.2
+release=1
+depends=()
+source=("https://github.com/NetworkConfiguration/dhcpcd/releases/download/v$version/dhcpcd-$version.tar.xz"
+	dhcpcd.initd)
+sha256=(
+	3e476657fdb6eeb38b277da3a48d0ac0113ecce5858ebdcddff2b629faed52b4
+	8b7c77d757e51260708d41ea4ea6899dec92d5c4ab59a281953f5c58c716498c
+)
+backup=(etc/dhcpcd.conf)
+
+build() {
+	cd "dhcpcd-$version"
+	./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var \
+		--libexecdir=/usr/libexec/dhcpcd --dbdir=/var/lib/dhcpcd \
+		--rundir=/run/dhcpcd --disable-privsep --without-udev --without-dev
+	make -j"$(nproc)"
+	make DESTDIR="$PKG" install
+	install -d "$PKG/var/lib/dhcpcd" "$PKG/etc/runlevels/default"
+	install -D -m 755 ../dhcpcd.initd "$PKG/etc/init.d/dhcpcd"
+	ln -s /etc/init.d/dhcpcd "$PKG/etc/runlevels/default/dhcpcd"
+}

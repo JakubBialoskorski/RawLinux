@@ -1,0 +1,5 @@
+NAME="RawLinux"
+ID=rawlinux
+VERSION_ID=0.5
+PRETTY_NAME="RawLinux 0.5"
+HOME_URL="https://github.com/JakubBialoskorski/RawLinux"

@@ -508,12 +508,13 @@ test_repo_recipes_resolve() {
 	# Build tools come first, and sysvinit replaces /sbin/init, so it goes
 	# in just before OpenRC, which it runs.
 	check pike deps openrc
-	check test "$(tr '\n' ' ' <"$T/out")" = "python ninja meson pkgconf libxcrypt shadow base-files util-linux e2fsprogs inetutils sysvinit openrc "
+	check test "$(tr '\n' ' ' <"$T/out")" = "python ninja meson pkgconf libxcrypt shadow dhcpcd base-files util-linux e2fsprogs inetutils sysvinit openrc "
 }
 
 test_base_files_recipe() {
-	# A stand-in for shadow, so the test does not build it.
+	# Stand-ins for shadow and dhcpcd, so the test does not build them.
 	recipe shadow 1 "" "" usr/bin/login=login
+	recipe dhcpcd 1 "" "" usr/sbin/dhcpcd=dhcpcd
 	cp -r "$REPO/recipes/base-files" "$PIKE_RECIPES/"
 	check pike add base-files
 	check has etc/inittab
@@ -525,9 +526,10 @@ test_base_files_recipe() {
 	# Every user has a shadow entry and every group a gshadow entry.
 	check test "$(cut -d: -f1 "$ROOT/etc/passwd")" = "$(cut -d: -f1 "$ROOT/etc/shadow")"
 	check test "$(grep -v '^#' "$ROOT/etc/group" | cut -d: -f1)" = "$(cut -d: -f1 "$ROOT/etc/gshadow")"
-	# Every file it installs is a backup file.
+	check test "$(readlink -f "$ROOT/etc/os-release")" = "$ROOT/usr/lib/os-release"
+	# Every file it installs is a backup file, but os-release.
 	pike files base-files
-	grep -v '/$' "$T/out" | sed 's|^/||' >"$T/files"
+	grep -v -e '/$' -e 'os-release$' "$T/out" | sed 's|^/||' >"$T/files"
 	cut -d' ' -f2- "$ROOT/var/lib/pike/db/base-files/backup" | sort >"$T/backup"
 	check cmp "$T/files" "$T/backup"
 }

@@ -2,19 +2,21 @@
 # systems, the network, the users and groups and the environment of
 # login shells
 #
-# All of them are backup files, so local changes survive upgrades.
+# All of them are backup files, so local changes survive upgrades,
+# except os-release, which names the release.
 # The users and groups are the system ones of the LFS book, without the
 # messagebus user, as there is no D-Bus, and with the uucp group, which
 # OpenRC gives /run/lock to. Every password is locked: set the root
 # password with passwd before the first boot to the login prompt.
-# init starts agetty, which runs login from shadow.
+# init starts agetty, which runs login from shadow. dhcpcd brings up
+# the network.
 
 name=base-files
 version=1
-release=2
-depends=(shadow)
+release=3
+depends=(shadow dhcpcd)
 source=(inittab fstab hostname hosts issue profile network protocols
-	passwd shadow group gshadow shells)
+	passwd shadow group gshadow shells os-release)
 sha256=(
 	bc11c5c681bdb51a1ab25d43bd6eee0ee1ae27044bfacd4daeea81e1dd9c98d9
 	c7d7a386751a101a1e3a4f0403d0085a7515c9c24cd780cbedf7a77f2381f804
@@ -22,13 +24,14 @@ sha256=(
 	2f704cfbc5068ddbb657d370811b396997f49f2986e0483d365261d1fdca946f
 	0e3fbda8006f3616b8ba52bef84ec21ba20bdec5468cd6838356c22b48568c63
 	717356846f6387fc2fb6efc5421ae9700a95127de4372be5f119b0917a072ada
-	838a58560f45aebe0a292a4673d4f03be174845251de97e2ebb58f8b33d81bea
+	85673996b4dfbeb9fe2b5c03663ace65744bcabc06ee0e7420cfd12bf8e6f9bb
 	24fbdced9e2fcd04c744b86718108f494bb08ad98aec4e269969a5b0e8a45e21
 	aaa42ed1201e5955d7f39cd5143134e7163863c46cf24419038762ad3fb195bf
 	ae45a7b7174f76d8a685e8efd79bd0a2d3c4da1ec7bc55ad721035469ca0e882
 	29f7fe8a7bdcc18b3948f577627e6383a865086495f1472db0960287a7acbe2c
 	1669f4e1e972d0d40e55d827a610fc99259f51522bbcca2f61e8285f84a2ba20
 	9e81efd1e25e824fbbcbc631784e42b9385580cc230eaaa2f931a410516137c2
+	620e939ed716055754227c8aabae12bb120c206e0e52e5951ebf058f870f02a6
 )
 backup=(etc/inittab etc/fstab etc/hostname etc/hosts etc/issue etc/profile
 	etc/protocols etc/passwd etc/shadow etc/group etc/gshadow etc/shells
@@ -41,4 +44,6 @@ build() {
 		passwd group shells "$PKG/etc/"
 	install -m 600 shadow gshadow "$PKG/etc/"
 	install -m 644 network "$PKG/etc/conf.d/"
+	install -D -m 644 os-release "$PKG/usr/lib/os-release"
+	ln -s ../usr/lib/os-release "$PKG/etc/os-release"
 }

@@ -1,0 +1,29 @@
+# sysvinit - init, the first process, and shutdown, halt and reboot
+# https://github.com/slicer69/sysvinit
+#
+# It takes /sbin/init over from base-system. Programs util-linux and
+# e2fsprogs already provide are left out, as the LFS book does with its
+# consolidated patch.
+
+name=sysvinit
+version=3.14
+release=1
+depends=()
+source=("https://github.com/slicer69/sysvinit/releases/download/$version/sysvinit-$version.tar.xz")
+sha256=(c90874b8c054a35991fb8c4d30c443ed1e9b1815ff6165c7b483f558be4e4b53)
+
+build() {
+	cd "sysvinit-$version"
+	local progs=(
+		SBIN="init halt shutdown runlevel killall5 fstab-decode bootlogd"
+		USRBIN=
+		MAN1=
+		MAN8="halt.8 init.8 killall5.8 pidof.8 poweroff.8 reboot.8 runlevel.8 shutdown.8 telinit.8 fstab-decode.8 bootlogd.8"
+	)
+	make -C src "${progs[@]}"
+	# pike packs every file as root:root, so install does not set the owner.
+	make -C src "${progs[@]}" ROOT="$PKG" base_bindir=/usr/bin base_sbindir=/usr/sbin \
+		INSTALL_EXEC="install -m 755" INSTALL_DATA="install -m 644" install
+	# util-linux has last and lastb.
+	rm "$PKG/usr/bin/lastb"
+}

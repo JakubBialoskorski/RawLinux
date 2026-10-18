@@ -1,0 +1,24 @@
+# e2fsprogs - ext2/3/4 utilities, fsck.ext4 checks the root file system at boot
+# https://e2fsprogs.sourceforge.net/
+#
+# blkid, uuid and the fsck wrapper come from util-linux.
+
+name=e2fsprogs
+version=1.47.4
+release=1
+depends=(pkgconf util-linux)
+source=("https://www.kernel.org/pub/linux/kernel/people/tytso/e2fsprogs/v$version/e2fsprogs-$version.tar.xz")
+sha256=(fd5bf388cbdbe006a3d3b318d983b2948382440acc85a87f1e7d108653e8db0b)
+backup=(etc/mke2fs.conf)
+
+build() {
+	mkdir build
+	cd build
+	"../e2fsprogs-$version/configure" --prefix=/usr --sysconfdir=/etc \
+		--enable-elf-shlibs --disable-libblkid --disable-libuuid \
+		--disable-uuidd --disable-fsck --without-udev-rules-dir \
+		--without-crond-dir --without-systemd-unit-dir
+	make -j"$(nproc)"
+	make DESTDIR="$PKG" install
+	rm "$PKG"/usr/lib/{libcom_err,libe2p,libext2fs,libss}.a
+}

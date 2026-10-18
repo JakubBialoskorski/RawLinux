@@ -1,0 +1,15 @@
+#!/sbin/openrc-run
+# /etc/init.d/dhcpcd - the DHCP client, configures every network
+# interface it finds and waits for an address, so the services that
+# need the network start with it. See dhcpcd(8) and dhcpcd.conf(5).
+
+name="DHCP client"
+command=/usr/sbin/dhcpcd
+command_args="-q -w"
+pidfile=/run/dhcpcd/pid
+
+depend() {
+	provide net
+	need localmount
+	after bootmisc
+}

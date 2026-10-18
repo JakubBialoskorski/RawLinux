@@ -45,7 +45,7 @@ build() {
 }
 ```
 
-`build()` runs in `$SRC` with the sources unpacked and installs into `$PKG`. `pike checksum <name>` prints the `sha256` array for a new recipe.
+`build()` runs in `$SRC` with the sources unpacked and installs into `$PKG`. A source without `://` is a file next to the recipe, as in `base-files`. `pike checksum <name>` prints the `sha256` array for a new recipe.
 
 Config files go to `backup=(etc/foo.conf)`. On upgrade, a locally changed file is kept and the new one lands next to it as `.new`. On remove, a changed file is saved as `.pikesave`.
 
@@ -70,3 +70,4 @@ Config files go to `backup=(etc/foo.conf)`. On upgrade, a locally changed file i
 - upgrade is not atomic
 - `build()` runs as root, without a sandbox
 - files created after `pike adopt` are untracked until it runs again, so a package shipping one conflicts with it
+- `depends` does not tell build from runtime dependencies, so meson stays installed as long as OpenRC is

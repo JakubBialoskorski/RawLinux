@@ -1,6 +1,6 @@
 # RawLinux
 
-Barebones Linux custom image, based on 6.14.0-rc2 kernel - smallest possible "distribution".
+Barebones Linux custom image, based on 6.18 LTS kernel - smallest possible "distribution".
 
 Everything redistributed in this project can be found in [sources](docs/sources.txt) file.
 
@@ -14,7 +14,31 @@ Make sure you have `qemu` installed:
 * Ubuntu / Mint: `sudo apt install qemu-system-x86`
 * Arch: `sudo pacman -S qemu-full`
 
-Launch it with `qemu-system-x86_64 disk.img` .
+`disk.img` is a qcow2 image, 100 GiB virtual size, of which only the used part takes space. Launch it with:
+
+```
+qemu-system-x86_64 -m 2G -drive file=disk.img,format=qcow2
+```
+
+On Linux, add `-enable-kvm -smp 4` to run it at hardware speed, which needs access to `/dev/kvm`. Add `-nographic` to log in on the serial console in the terminal instead.
+
+Log in as `root` with password `rawlinux` and change it with `passwd`.
+
+### Package manager
+
+RawLinux builds its own packages with [pike](docs/package-manager.md), from the recipes in `/usr/share/pike/recipes`:
+
+```
+pike add less
+```
+
+### Documentation
+
+* [boot process](docs/boot-process.md)
+* [kernel](docs/kernel.md)
+* [users and login](docs/users.md)
+* [init system decision](docs/decisions/0001-init-system.md)
+* [base system](docs/libs-purpose.md)
 
 ### Roadmap & delivery
 
@@ -34,7 +58,13 @@ Launch it with `qemu-system-x86_64 disk.img` .
 
 [x] document system libs and their purpose
 
-[ ] configure systemd (or openrc, not decided yet)
+[x] add package manager (pike)
+
+[x] build the kernel inside RawLinux (6.18 LTS)
+
+[x] add init system (OpenRC)
+
+[x] add users and login
 
 [ ] add default graphical environment
 

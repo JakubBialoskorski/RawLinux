@@ -2,7 +2,7 @@
 
 From power on to the login prompt, and back to power off.
 
-1. **GRUB.** The BIOS loads GRUB from the MBR. GRUB reads `/boot/grub/grub.cfg` and starts `/boot/bzImage` with `root=/dev/sda1 ro`.
+1. **GRUB.** The BIOS loads GRUB from the MBR. GRUB reads `/boot/grub/grub.cfg` and after 5 seconds starts `/boot/bzImage` with `root=/dev/sda1 ro`. The second entry is the [fallback](kernel.md#fallback) kernel.
 2. **Kernel.** All drivers are built in, so there is no initramfs. The kernel mounts the root file system read-only, mounts `devtmpfs` on `/dev` and starts `/sbin/init` as process 1. See [kernel](kernel.md).
 3. **init.** sysvinit reads `/etc/inittab` and runs OpenRC: `openrc sysinit`, `openrc boot`, then `openrc default` for runlevel 3.
 4. **OpenRC.** A runlevel is a directory of links in `/etc/runlevels`. OpenRC starts the services in the order of their dependencies:

@@ -6,12 +6,12 @@
 
 name=linux
 version=6.18.57
-release=1
+release=2
 depends=()
 source=("https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$version.tar.xz" config)
 sha256=(
 	5bd9acdc82ec5efc3790ae840e5aaa40dfde7efff261cf6dde902dc570acf98c
-	52b2ab10865b38040f70277d28fdaabfa8b8808eae584af4655f6ffb9cac71c1
+	c0a521155dde209e78252952ad1455ac1b4f5ce1a645fe391c6c582140183008
 )
 
 build() {

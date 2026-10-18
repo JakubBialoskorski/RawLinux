@@ -1,6 +1,6 @@
 # Boot process
 
-From power on to a shell, and back to power off.
+From power on to the login prompt, and back to power off.
 
 1. **GRUB.** The BIOS loads GRUB from the MBR. GRUB reads `/boot/grub/grub.cfg` and starts `/boot/bzImage` with `root=/dev/sda1 ro`.
 2. **Kernel.** All drivers are built in, so there is no initramfs. The kernel mounts the root file system read-only, mounts `devtmpfs` on `/dev` and starts `/sbin/init` as process 1. See [kernel](kernel.md).
@@ -13,7 +13,7 @@ From power on to a shell, and back to power off.
 | `boot` | check `/` with `fsck`, remount it read-write, mount the rest of `/etc/fstab`, set the host name and the clock, bring up `lo` and `eth0` |
 | `default` | run `/etc/local.d` scripts |
 
-5. **Shell.** init starts `agetty` on `tty1` and on the serial port `ttyS0`. Both run a root login shell, which reads `/etc/profile`.
+5. **Login.** init starts `agetty` on `tty1` and on the serial port `ttyS0`. agetty asks for a login name, `login` checks the password and starts a login shell, which reads `/etc/profile`. See [users and login](users.md).
 
 `rc-status` shows the services, `rc-service <name> restart` restarts one, `rc-update add <name> default` adds one to a runlevel.
 
@@ -31,8 +31,10 @@ This builds and installs, in order:
 
 | Package | What for |
 |---|---|
-| `base-files` | `/etc/inittab`, `/etc/fstab`, `/etc/group`, host name, network address, `/etc/profile` |
-| `pkgconf` | `pkg-config`, for e2fsprogs and OpenRC |
+| `libxcrypt` | `crypt()`, for shadow |
+| `pkgconf` | `pkg-config`, for shadow, e2fsprogs and OpenRC |
+| `shadow` | `login`, see [users and login](users.md) |
+| `base-files` | `/etc/inittab`, `/etc/fstab`, users and groups, host name, network address, `/etc/profile` |
 | `util-linux` | headers and `.pc` files for libblkid and libuuid, `fsck`, `mount`, `agetty` |
 | `e2fsprogs` | `fsck.ext4` |
 | `inetutils` | `hostname` and `ping` |
@@ -44,6 +46,7 @@ sysvinit takes `/sbin/init` over from `base-system`. util-linux takes over the h
 
 On the v0.3 image:
 
+- `/etc/passwd` has only root, and pike keeps it. Take the new one and set the root password before rebooting, see [users and login](users.md).
 - `grub.cfg` starts the kernel with `rw`. Then `/` is already writable at boot and OpenRC skips its check, so `rw` has to become `ro`.
 - gcc's fixed headers were made from glibc 2.40 headers, and with glibc 2.41 Python does not link. Run gcc's `mkheaders` before `pike add openrc`:
 

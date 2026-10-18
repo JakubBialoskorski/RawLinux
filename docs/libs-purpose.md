@@ -1,73 +1,70 @@
-Linux Kernel: obviously, we need it.
+### Base system
 
-Bash: to have a basic shell.
+What the hand-built v0.3 image contains and why. Packages built later by pike are in [recipes](../recipes).
 
-coreutils: to be able to run `cat`, `rm`, `cp` etc.
+### Core
 
-util-linux: bunch of tools like `mount` .
+| Package | Purpose |
+|---|---|
+| Linux kernel | the kernel |
+| glibc | C library and the dynamic loader `ld-linux` |
+| Bash | shell |
+| coreutils | `cat`, `cp`, `rm` and the rest of the basic tools |
+| util-linux | `mount`, `agetty` and other system tools |
+| ncurses | terminal library, needed by Bash and other terminal programs |
 
-glibc: contains lib loader `ld-linux`, allows to use dynamic libraries.
+### Libraries
 
-ncurses: terminal library, required by Bash and other terminal applications.
+| Package | Purpose |
+|---|---|
+| OpenSSL | TLS for HTTPS, `libssl` and `libcrypto` |
+| zlib | deflate compression, `libz` |
+| zstd | `.zst` compression, `libzstd` |
+| pcre2 | regular expressions, `libpcre2` |
+| elfutils | `libelf` and ELF tools, needed by the kernel build (objtool) |
+| libcap | POSIX capabilities, `libcap` |
 
-iproute2: default network tool, allows connection to the Internet.
+### Toolchain
 
-elfutils: provides `libelf` and elf editing tools.
+| Package | Purpose |
+|---|---|
+| GCC | C and C++ compiler, with `libstdc++` |
+| binutils | assembler `as`, linker `ld` and `objdump`, `strip` and the rest |
+| make | runs the builds |
+| m4 | macro processor, needed by autoconf and bison |
+| autoconf | generates `configure` scripts, needed by git |
+| bison | parser generator, needed by the kernel |
+| flex | lexer generator, needed by the kernel |
+| bc | calculator, needed by the kernel |
+| Texinfo | documentation tools, needed to build bc |
+| Perl | needed by many builds, including curl and OpenSSL |
 
-libcap: handles privilege and permissions.
+### Text and files
 
-zlib: compression tool, provides `libz`.
+| Package | Purpose |
+|---|---|
+| sed | stream editor |
+| grep | searches text |
+| awk | text processing, needed by Perl |
+| diffutils | `diff` and `cmp` |
+| findutils | `find` and `xargs` |
+| tar | packs and unpacks archives |
+| gzip | `.gz` compression |
+| bzip2 | `.bz2` compression |
+| xz | `.xz` compression, used by pike packages |
 
-zstd: compression lib, handles `.zst`, `.gz`, `.xz`, `.lz4` formats. Provides `libzstd`.
+### Network
 
-wget: tool for downloading stuff.
+| Package | Purpose |
+|---|---|
+| iproute2 | `ip`, sets up the network |
+| curl | downloads over HTTP and HTTPS, used by pike |
+| wget | downloads over HTTP and HTTPS |
+| git | clones repositories, such as this one |
+| dnsmasq | small DNS and DHCP server, started by the v0.3 init but not needed |
 
-pcre2: tool for regex pattern matching.
+### Debugging
 
-OpenSSL: library for SSL, TLS, HTTPS etc.
-
-dnsmasq: lightweight DNS/DHCP server.
-
-GCC & libstdc++: basic GNU compiler and it's C++ libs.
-
-make: tool to build from sources.
-
-tar: to pack / unpack files.
-
-gzip: to complement tar with it's functionalities.
-
-sed: stream editor.
-
-grep: to catch strings.
-
-awk: text processing tool, also needed by Perl.
-
-binutils: used with `make`.
-
-xz: compression tool, used to verify the compiler.
-
-diffutils: provides `diff` and `cmp`.
-
-m4: needed by `autoconf`.
-
-bison: needed by the kernel and other GNU software.
-
-bzip2: to complement `tar` and `gzip`.
-
-flex: Fast Lexical Analyzer, needed by the kernel.
-
-findutils: provides `find`.
-
-Perl: needed by many tools, including `curl`.
-
-autoconf: needed by `git`.
-
-Texinfo: required by `bc`, which is a dependency for the kernel.
-
-bc: needed to compile the kernel itself.
-
-curl: tool for downloading stuff.
-
-git: to clone stuff, mostly new kernels.
-
-strace: to better debug what's wrong from inside the distro.
+| Package | Purpose |
+|---|---|
+| strace | traces system calls |

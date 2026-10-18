@@ -1,0 +1,42 @@
+# shadow - login, su, passwd, useradd and the other tools for users,
+# groups and the passwords in /etc/shadow
+# https://github.com/shadow-maint/shadow
+#
+# Configured as in the LFS book, without PAM: passwords are hashed with
+# yescrypt, util-linux leaves login, su, nologin, chfn and chsh to it.
+# The kernel has no user namespaces, so subordinate ids are left out,
+# and with them the setuid newuidmap and newgidmap.
+
+name=shadow
+version=4.20.3
+release=1
+depends=(libxcrypt pkgconf)
+source=("https://github.com/shadow-maint/shadow/releases/download/$version/shadow-$version.tar.xz"
+	useradd)
+sha256=(
+	623be9429f64fa2165bfc5957c6a642ec309c5cf23c0d53855c99f7591922297
+	49fdc945b45e136e2815f95f09735d4e9fd72bbbcb3c0121c3ca3fde8e8103e3
+)
+backup=(etc/login.defs etc/limits etc/login.access etc/default/useradd)
+
+build() {
+	cd "shadow-$version"
+	# yescrypt, /var/mail and PATH without the merged /bin and /sbin, as
+	# in LFS, and no "No mail." at login, as there is no mail.
+	sed -e 's:#ENCRYPT_METHOD SHA512:ENCRYPT_METHOD YESCRYPT:' \
+		-e 's:/var/spool/mail:/var/mail:' \
+		-e '/^MAIL_CHECK_ENAB/s/yes/no/' \
+		-e '/PATH=/{s@/sbin:@@;s@/bin:@@}' \
+		-i etc/login.defs
+	# configure looks for the log and mail directories on the build
+	# system, which on v0.3 has neither.
+	./configure --prefix=/usr --sysconfdir=/etc --disable-static \
+		--with-bcrypt --with-yescrypt --without-libbsd --disable-logind \
+		--disable-subordinate-ids --with-group-name-max-length=32 \
+		shadow_cv_logdir=/var/log shadow_cv_maildir=/var/mail
+	make -j"$(nproc)"
+	# For prefix /usr, configure leaves exec_prefix empty, which would put
+	# login, su and nologin in /bin.
+	make exec_prefix=/usr DESTDIR="$PKG" install
+	install -D -m 644 ../useradd "$PKG/etc/default/useradd"
+}

@@ -1,0 +1,22 @@
+# libxcrypt - crypt(), the library that hashes passwords
+# https://github.com/besser82/libxcrypt
+#
+# glibc 2.41 has no libcrypt, and shadow needs crypt(). Configured as in
+# the LFS book: the strong hashes and the ones glibc had, without the
+# old libcrypt.so.1 interface, which nothing in the system was linked
+# against.
+
+name=libxcrypt
+version=4.5.2
+release=1
+depends=()
+source=("https://github.com/besser82/libxcrypt/releases/download/v$version/libxcrypt-$version.tar.xz")
+sha256=(71513a31c01a428bccd5367a32fd95f115d6dac50fb5b60c779d5c7942aec071)
+
+build() {
+	cd "libxcrypt-$version"
+	./configure --prefix=/usr --enable-hashes=strong,glibc \
+		--enable-obsolete-api=no --disable-static --disable-failure-tokens
+	make -j"$(nproc)"
+	make DESTDIR="$PKG" install
+}

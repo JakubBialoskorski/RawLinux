@@ -1,0 +1,16 @@
+# ninja - small build system, the backend meson writes build files for
+# https://ninja-build.org/
+
+name=ninja
+version=1.13.2
+release=1
+depends=(python)
+source=("https://github.com/ninja-build/ninja/archive/refs/tags/v$version.tar.gz")
+sha256=(974d6b2f4eeefa25625d34da3cb36bdcebe7fbce40f4c16ac0835fd1c0cbae17)
+
+build() {
+	cd "ninja-$version"
+	# Builds a first ninja without ninja, then ninja with itself.
+	python3 configure.py --bootstrap
+	install -D -m 755 ninja "$PKG/usr/bin/ninja"
+}

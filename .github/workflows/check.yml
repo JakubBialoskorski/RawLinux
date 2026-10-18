@@ -1,0 +1,12 @@
+name: check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pike:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: make -C pike check

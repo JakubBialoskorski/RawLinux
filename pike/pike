@@ -45,6 +45,7 @@ usage: pike <command> [args]
   outdated             list installed packages that differ from their recipes
   upgrade              build and install every outdated package
   adopt                record untracked files as the base-system package
+  strip                strip debug info from the ELF files of base-system
   remove <name>        remove an installed package
   list                 list installed packages
   files <name>         list files owned by a package
@@ -620,6 +621,50 @@ cmd_adopt() {
 	)
 }
 
+# The hand-built system was installed with debug info, which packages
+# lose at build time. Every ELF file of base-system is stripped in a copy
+# that is renamed over it, so a running program or a library in use keeps
+# its old file. Other names of a hard linked file are linked to the
+# stripped copy the same way.
+cmd_strip() {
+	[ $# -eq 0 ] || die "usage: pike strip"
+	need_root
+	(
+		lock
+		local p f tmp inode before=0 after=0 files=0
+		local -A stripped=()
+		grep -v '/$' "$DB/$BASE_PKG/manifest" >"$TMP/files" || true
+		while IFS= read -r p; do
+			f=$ROOT$p
+			[ -f "$f" ] || continue
+			[ -L "$f" ] && continue
+			inode=$(stat -c %d:%i "$f")
+			tmp=$f.pikestrip
+			if [ -n "${stripped[$inode]:-}" ]; then
+				ln -f "${stripped[$inode]}" "$tmp"
+				mv -f "$tmp" "$f"
+				continue
+			fi
+			is_elf "$f" || continue
+			cp -a "$f" "$tmp"
+			case $f in
+			*.a | *.o) strip --strip-debug "$tmp" 2>/dev/null || true ;;
+			*) strip --strip-unneeded "$tmp" 2>/dev/null || true ;;
+			esac
+			if cmp -s "$f" "$tmp"; then
+				rm -f "$tmp"
+				continue
+			fi
+			before=$((before + $(stat -c %s "$f")))
+			after=$((after + $(stat -c %s "$tmp")))
+			files=$((files + 1))
+			mv -f "$tmp" "$f"
+			stripped[$inode]=$f
+		done <"$TMP/files"
+		msg "stripped $files files, $(((before - after) / 1048576)) MiB less"
+	)
+}
+
 cmd_list() {
 	local d
 	for d in "$DB"/*/version; do
@@ -680,7 +725,7 @@ cmd_checksum() {
 cmd=$1
 shift
 case $cmd in
-build | install | add | outdated | upgrade | adopt | remove | list | files | owns | deps | checksum) "cmd_$cmd" "$@" ;;
+build | install | add | outdated | upgrade | adopt | strip | remove | list | files | owns | deps | checksum) "cmd_$cmd" "$@" ;;
 -h | --help | help) usage ;;
 *)
 	usage >&2

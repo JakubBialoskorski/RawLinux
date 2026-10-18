@@ -468,6 +468,28 @@ test_outdated_and_upgrade() {
 	check out_has "nothing to upgrade"
 }
 
+test_strip_base_system() {
+	command -v cc >/dev/null || return 0
+	mkdir -p "$ROOT/usr/bin"
+	printf 'int main(void) { return 7; }\n' >"$T/hello.c"
+	cc -g -o "$ROOT/usr/bin/hello" "$T/hello.c"
+	ln "$ROOT/usr/bin/hello" "$ROOT/usr/bin/hello2"
+	echo text >"$ROOT/usr/bin/script"
+	check pike adopt
+	size=$(stat -c %s "$ROOT/usr/bin/hello")
+	check pike strip
+	check out_has "stripped 1 files"
+	check test "$(stat -c %s "$ROOT/usr/bin/hello")" -lt "$size"
+	check test "$ROOT/usr/bin/hello" -ef "$ROOT/usr/bin/hello2"
+	check test "$(cat "$ROOT/usr/bin/script")" = text
+	rc=0
+	"$ROOT/usr/bin/hello2" || rc=$?
+	check test "$rc" = 7
+	check pike strip
+	check out_has "stripped 0 files"
+	fails test -e "$ROOT/usr/bin/hello.pikestrip"
+}
+
 test_repo_recipes_resolve() {
 	local r
 	PIKE_RECIPES=$REPO/recipes

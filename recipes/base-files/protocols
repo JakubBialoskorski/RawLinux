@@ -1,0 +1,8 @@
+# /etc/protocols - protocol numbers for getprotobyname(3), which ping uses.
+# Only the common ones; the full list is in the iana-etc package.
+ip         0   IP          # Internet Protocol
+icmp       1   ICMP        # Internet Control Message Protocol
+tcp        6   TCP         # Transmission Control Protocol
+udp       17   UDP         # User Datagram Protocol
+ipv6      41   IPv6        # Internet Protocol, version 6
+ipv6-icmp 58   IPv6-ICMP   # ICMP for IPv6

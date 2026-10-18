@@ -7,7 +7,8 @@
 set -u -o pipefail
 export LC_ALL=C
 
-PIKE=$(cd "$(dirname "$0")/.." && pwd)/pike/pike
+REPO=$(cd "$(dirname "$0")/.." && pwd)
+PIKE=$REPO/pike/pike
 BASE=$(mktemp -d)
 trap 'rm -rf "$BASE"' EXIT
 
@@ -424,6 +425,31 @@ test_base_system_cannot_be_removed() {
 	fails pike remove base-system
 	check out_has "base-system cannot be removed"
 	check has usr/bin/sh
+}
+
+test_repo_recipes_resolve() {
+	local r
+	PIKE_RECIPES=$REPO/recipes
+	for r in "$PIKE_RECIPES"/*/recipe; do
+		r=${r%/recipe}
+		check pike deps "${r##*/}"
+	done
+	# sysvinit replaces /sbin/init, so it goes in just before OpenRC, which it runs.
+	check pike deps openrc
+	check test "$(tr '\n' ' ' <"$T/out")" = "base-files pkgconf util-linux e2fsprogs inetutils python ninja meson sysvinit openrc "
+}
+
+test_base_files_recipe() {
+	PIKE_RECIPES=$REPO/recipes
+	check pike add base-files
+	check has etc/inittab
+	check has etc/conf.d/network
+	check test -d "$ROOT/run"
+	# Every file it installs is a backup file.
+	pike files base-files
+	grep -v '/$' "$T/out" | sed 's|^/||' >"$T/files"
+	cut -d' ' -f2- "$ROOT/var/lib/pike/db/base-files/backup" | sort >"$T/backup"
+	check cmp "$T/files" "$T/backup"
 }
 
 tests=$(declare -F | sed -n 's/^declare -f \(test_.*\)/\1/p')

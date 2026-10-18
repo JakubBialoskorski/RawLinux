@@ -1,0 +1,20 @@
+# meson - build system, OpenRC is built with it
+# https://mesonbuild.com/
+#
+# There is no setuptools or pip, so meson is installed as a zipapp:
+# a single executable zip with the mesonbuild package inside.
+
+name=meson
+version=1.12.1
+release=1
+depends=(python ninja)
+source=("https://github.com/mesonbuild/meson/releases/download/$version/meson-$version.tar.gz")
+sha256=(ab0a6ca09f8ef70c564c8241fb5a23957886a0b53fb58412b5e07eaf07dba743)
+
+build() {
+	cd "meson-$version"
+	python3 packaging/create_zipapp.py --outfile meson.pyz \
+		--interpreter /usr/bin/python3 --compress .
+	install -D -m 755 meson.pyz "$PKG/usr/bin/meson"
+	install -D -m 644 man/meson.1 "$PKG/usr/share/man/man1/meson.1"
+}

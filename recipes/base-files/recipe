@@ -1,0 +1,31 @@
+# base-files - configuration of the system: what init starts, the file
+# systems, the network, the groups and the environment of login shells
+#
+# All of them are backup files, so local changes survive upgrades.
+# The groups are the system groups of the LFS book, and uucp, which
+# OpenRC gives /run/lock to.
+
+name=base-files
+version=1
+release=1
+depends=()
+source=(inittab fstab hostname hosts profile network protocols group)
+sha256=(
+	50fe53f77e89b8d2f9c0dd4832c06acbe74713df7fa1555b4dcda9d6f24a8808
+	c7d7a386751a101a1e3a4f0403d0085a7515c9c24cd780cbedf7a77f2381f804
+	92cf036af93e5fa1ec8c5372ec5ae77c225498236d6e1b579a0b1a3e0a905890
+	2f704cfbc5068ddbb657d370811b396997f49f2986e0483d365261d1fdca946f
+	717356846f6387fc2fb6efc5421ae9700a95127de4372be5f119b0917a072ada
+	838a58560f45aebe0a292a4673d4f03be174845251de97e2ebb58f8b33d81bea
+	24fbdced9e2fcd04c744b86718108f494bb08ad98aec4e269969a5b0e8a45e21
+	29f7fe8a7bdcc18b3948f577627e6383a865086495f1472db0960287a7acbe2c
+)
+backup=(etc/inittab etc/fstab etc/hostname etc/hosts etc/profile etc/protocols
+	etc/group etc/conf.d/network)
+
+build() {
+	install -d "$PKG/etc/conf.d" "$PKG/run" "$PKG/var/log"
+	install -m 644 inittab fstab hostname hosts profile protocols group \
+		"$PKG/etc/"
+	install -m 644 network "$PKG/etc/conf.d/"
+}

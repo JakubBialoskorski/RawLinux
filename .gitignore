@@ -20,7 +20,7 @@ ncurses-6.5/*
 ncurses-build/*
 root/*
 util-build/*
-util-linux/
+/util-linux/
 elfutils-build/
 elfutils/
 iproute2/

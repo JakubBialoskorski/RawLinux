@@ -1,0 +1,23 @@
+# pkgconf - pkg-config, finds the flags to build against a library
+# https://github.com/pkgconf/pkgconf
+#
+# The system keeps .pc files in /usr/lib/pkgconfig and, for libcap and
+# OpenSSL, in /usr/lib64/pkgconfig, so both are searched.
+
+name=pkgconf
+version=3.0.7
+release=1
+depends=()
+source=("https://distfiles.ariadne.space/pkgconf/pkgconf-$version.tar.xz")
+sha256=(c926ff491cbd9a331a589160811bd97ab1749b4d5198a519338f2cdfabe6940a)
+
+build() {
+	cd "pkgconf-$version"
+	./configure --prefix=/usr --disable-static \
+		--with-pkg-config-dir=/usr/lib/pkgconfig:/usr/lib64/pkgconfig:/usr/share/pkgconfig \
+		--with-system-libdir=/usr/lib:/usr/lib64
+	make -j"$(nproc)"
+	make DESTDIR="$PKG" install
+	ln -s pkgconf "$PKG/usr/bin/pkg-config"
+	ln -s pkgconf.1 "$PKG/usr/share/man/man1/pkg-config.1"
+}

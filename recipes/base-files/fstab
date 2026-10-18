@@ -1,0 +1,5 @@
+# /etc/fstab - file systems mounted at boot, see fstab(5)
+# OpenRC mounts /proc, /sys, /run, /dev and /sys/fs/cgroup itself.
+
+# file system  mount point  type  options   dump  fsck
+/dev/sda1      /            ext4  defaults  1     1

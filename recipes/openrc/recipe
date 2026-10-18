@@ -1,0 +1,32 @@
+# openrc - starts and stops the services, run from /etc/inittab by sysvinit
+# https://github.com/OpenRC/openrc
+#
+# Services that need tools RawLinux does not have are taken out of the
+# boot runlevel: keymaps and save-keymaps (kbd), sysctl (procps),
+# modules (kmod) and binfmt (the kernel has no binfmt_misc). The scripts
+# stay in /etc/init.d. /etc/conf.d/network comes from base-files.
+# sysvinit comes last in depends, so the system switches to it only
+# once OpenRC is built.
+
+name=openrc
+version=0.64.1
+release=1
+depends=(base-files e2fsprogs inetutils meson pkgconf sysvinit)
+source=("https://github.com/OpenRC/openrc/archive/refs/tags/$version.tar.gz")
+sha256=(56d6d24c7fd2ca15d1abd1fb82ce5430629a71acb2c3fa12760300243dbd0baa)
+backup=(etc/rc.conf)
+
+build() {
+	meson setup build "openrc-$version" --buildtype=release \
+		--prefix=/usr --bindir=bin --sbindir=sbin --libdir=lib \
+		-Dnewnet=true -Dpam=false -Daudit=disabled -Dselinux=disabled \
+		-Dbash-completions=false -Dzsh-completions=false
+	ninja -C build
+	DESTDIR="$PKG" meson install -C build --no-rebuild
+	install -m 755 "openrc-$version/support/sysvinit/halt.sh" "$PKG/usr/sbin/"
+	local s
+	for s in keymaps save-keymaps sysctl modules binfmt; do
+		rm "$PKG/etc/runlevels/boot/$s"
+	done
+	rm "$PKG/etc/conf.d/network"
+}

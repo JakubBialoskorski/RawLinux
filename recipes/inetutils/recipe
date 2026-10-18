@@ -1,0 +1,25 @@
+# inetutils - hostname, ping and other basic network clients
+# https://www.gnu.org/software/inetutils/
+#
+# Configured as in the LFS book: no servers, and no clients that
+# util-linux replaces or that are insecure.
+
+name=inetutils
+version=2.6
+release=1
+depends=()
+source=("https://ftp.gnu.org/gnu/inetutils/inetutils-$version.tar.xz")
+sha256=(68bedbfeaf73f7d86be2a7d99bcfbd4093d829f52770893919ae174c0b2357ca)
+
+build() {
+	cd "inetutils-$version"
+	# Lets telnet build with gcc 14.
+	sed -i 's/def HAVE_TERMCAP_TGETENT/ 1/' telnet/telnet.c
+	./configure --prefix=/usr --bindir=/usr/bin --localstatedir=/var \
+		--disable-logger --disable-whois --disable-rcp --disable-rexec \
+		--disable-rlogin --disable-rsh --disable-servers
+	make -j"$(nproc)"
+	make DESTDIR="$PKG" install
+	install -d "$PKG/usr/sbin"
+	mv "$PKG/usr/bin/ifconfig" "$PKG/usr/sbin/"
+}

@@ -24,6 +24,6 @@ su1:S:wait:/sbin/sulogin
 
 ca:12345:ctrlaltdel:/sbin/shutdown -r now
 
-# A root shell on the first console and on the serial port.
-1:2345:respawn:/sbin/agetty --noclear --skip-login --login-program /bin/bash --login-options -l tty1 38400 linux
-S0:2345:respawn:/sbin/agetty --skip-login --login-program /bin/bash --login-options -l ttyS0 115200 vt100
+# A login prompt on the first console and on the serial port.
+1:2345:respawn:/sbin/agetty --noclear tty1 38400 linux
+S0:2345:respawn:/sbin/agetty ttyS0 115200 vt100

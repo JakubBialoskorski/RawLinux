@@ -436,15 +436,23 @@ test_repo_recipes_resolve() {
 	done
 	# sysvinit replaces /sbin/init, so it goes in just before OpenRC, which it runs.
 	check pike deps openrc
-	check test "$(tr '\n' ' ' <"$T/out")" = "base-files pkgconf util-linux e2fsprogs inetutils python ninja meson sysvinit openrc "
+	check test "$(tr '\n' ' ' <"$T/out")" = "libxcrypt pkgconf shadow base-files util-linux e2fsprogs inetutils python ninja meson sysvinit openrc "
 }
 
 test_base_files_recipe() {
-	PIKE_RECIPES=$REPO/recipes
+	# A stand-in for shadow, so the test does not build it.
+	recipe shadow 1 "" "" usr/bin/login=login
+	cp -r "$REPO/recipes/base-files" "$PIKE_RECIPES/"
 	check pike add base-files
 	check has etc/inittab
 	check has etc/conf.d/network
 	check test -d "$ROOT/run"
+	check test "$(stat -c %a "$ROOT/etc/shadow" "$ROOT/etc/gshadow" "$ROOT/root")" = "600
+600
+700"
+	# Every user has a shadow entry and every group a gshadow entry.
+	check test "$(cut -d: -f1 "$ROOT/etc/passwd")" = "$(cut -d: -f1 "$ROOT/etc/shadow")"
+	check test "$(grep -v '^#' "$ROOT/etc/group" | cut -d: -f1)" = "$(cut -d: -f1 "$ROOT/etc/gshadow")"
 	# Every file it installs is a backup file.
 	pike files base-files
 	grep -v '/$' "$T/out" | sed 's|^/||' >"$T/files"

@@ -1,31 +1,44 @@
 # base-files - configuration of the system: what init starts, the file
-# systems, the network, the groups and the environment of login shells
+# systems, the network, the users and groups and the environment of
+# login shells
 #
 # All of them are backup files, so local changes survive upgrades.
-# The groups are the system groups of the LFS book, and uucp, which
-# OpenRC gives /run/lock to.
+# The users and groups are the system ones of the LFS book, without the
+# messagebus user, as there is no D-Bus, and with the uucp group, which
+# OpenRC gives /run/lock to. Every password is locked: set the root
+# password with passwd before the first boot to the login prompt.
+# init starts agetty, which runs login from shadow.
 
 name=base-files
 version=1
-release=1
-depends=()
-source=(inittab fstab hostname hosts profile network protocols group)
+release=2
+depends=(shadow)
+source=(inittab fstab hostname hosts issue profile network protocols
+	passwd shadow group gshadow shells)
 sha256=(
-	50fe53f77e89b8d2f9c0dd4832c06acbe74713df7fa1555b4dcda9d6f24a8808
+	bc11c5c681bdb51a1ab25d43bd6eee0ee1ae27044bfacd4daeea81e1dd9c98d9
 	c7d7a386751a101a1e3a4f0403d0085a7515c9c24cd780cbedf7a77f2381f804
 	92cf036af93e5fa1ec8c5372ec5ae77c225498236d6e1b579a0b1a3e0a905890
 	2f704cfbc5068ddbb657d370811b396997f49f2986e0483d365261d1fdca946f
+	0e3fbda8006f3616b8ba52bef84ec21ba20bdec5468cd6838356c22b48568c63
 	717356846f6387fc2fb6efc5421ae9700a95127de4372be5f119b0917a072ada
 	838a58560f45aebe0a292a4673d4f03be174845251de97e2ebb58f8b33d81bea
 	24fbdced9e2fcd04c744b86718108f494bb08ad98aec4e269969a5b0e8a45e21
+	aaa42ed1201e5955d7f39cd5143134e7163863c46cf24419038762ad3fb195bf
+	ae45a7b7174f76d8a685e8efd79bd0a2d3c4da1ec7bc55ad721035469ca0e882
 	29f7fe8a7bdcc18b3948f577627e6383a865086495f1472db0960287a7acbe2c
+	1669f4e1e972d0d40e55d827a610fc99259f51522bbcca2f61e8285f84a2ba20
+	9e81efd1e25e824fbbcbc631784e42b9385580cc230eaaa2f931a410516137c2
 )
-backup=(etc/inittab etc/fstab etc/hostname etc/hosts etc/profile etc/protocols
-	etc/group etc/conf.d/network)
+backup=(etc/inittab etc/fstab etc/hostname etc/hosts etc/issue etc/profile
+	etc/protocols etc/passwd etc/shadow etc/group etc/gshadow etc/shells
+	etc/conf.d/network)
 
 build() {
-	install -d "$PKG/etc/conf.d" "$PKG/run" "$PKG/var/log"
-	install -m 644 inittab fstab hostname hosts profile protocols group \
-		"$PKG/etc/"
+	install -d "$PKG/etc/conf.d" "$PKG/home" "$PKG/run" "$PKG/var/log"
+	install -d -m 700 "$PKG/root"
+	install -m 644 inittab fstab hostname hosts issue profile protocols \
+		passwd group shells "$PKG/etc/"
+	install -m 600 shadow gshadow "$PKG/etc/"
 	install -m 644 network "$PKG/etc/conf.d/"
 }

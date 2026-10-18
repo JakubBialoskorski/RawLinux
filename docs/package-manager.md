@@ -4,13 +4,7 @@ Small source-based package manager written in Bash, in the spirit of CRUX pkguti
 
 ### Install
 
-pike is in the image as the `pike` package: `/usr/bin/pike` and the recipes in `/usr/share/pike/recipes`. On a system without it, the first copy goes in with:
-
-```
-make -C pike DESTDIR=/mnt/rawlinux install
-```
-
-The `pike` recipe packages pike itself: the script that runs the build and the recipes it reads. To bring a newer checkout of this repository to the system:
+pike is in the image as the `pike` package: `/usr/bin/pike` and the recipes in `/usr/share/pike/recipes`. The `pike` recipe packages pike itself: the script that runs the build and the recipes it reads. To bring a newer checkout of this repository to the system:
 
 ```
 git clone https://github.com/JakubBialoskorski/RawLinux
@@ -18,7 +12,7 @@ cd RawLinux
 PIKE_RECIPES=$PWD/recipes pike/pike upgrade
 ```
 
-This rebuilds every outdated package with the recipes of the checkout, `pike` among them. On v0.4, where pike is not a package yet, run `PIKE_RECIPES=$PWD/recipes pike/pike add pike` first, then `pike upgrade`.
+This rebuilds every outdated package with the recipes of the checkout, `pike` among them.
 
 ### Usage
 

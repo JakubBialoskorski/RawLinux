@@ -38,7 +38,7 @@ RawLinux builds its own packages with [pike](docs/package-manager.md), from the 
 pike add less
 ```
 
-`pike upgrade` rebuilds what changed in the recipes. To move v0.4 to v0.5, see [package manager](docs/package-manager.md#install).
+`pike upgrade` rebuilds what changed in the recipes.
 
 ### Documentation
 

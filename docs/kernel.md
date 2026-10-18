@@ -4,13 +4,7 @@ Linux 6.18 LTS, built inside RawLinux with [pike](package-manager.md). Everythin
 
 ### Build
 
-```
-pike add linux
-```
-
-This installs `/boot/bzImage` and `/boot/.config`, taking them over from `base-system`. `pike remove linux` puts the previous kernel back.
-
-The build uses all CPUs with `make -j$(nproc)`. The 6.14.0-rc2 kernel from v0.3 has no SMP, so on it the first build runs on one CPU. Once booted into 6.18, RawLinux sees all of them.
+The kernel is the `linux` package: `/boot/bzImage` and `/boot/.config`. After changing `recipes/linux/config`, update its sum in the recipe with `pike checksum linux`, raise `release` and run `pike upgrade`. The build uses all CPUs with `make -j$(nproc)`.
 
 ### Config
 
@@ -36,11 +30,9 @@ The build uses all CPUs with `make -j$(nproc)`. The 6.14.0-rc2 kernel from v0.3 
 
 Without an initramfs, the kernel finds the root file system itself, so GRUB names it by the partition: `root=PARTUUID=a549ab39-01`. It stays the same whether the disk shows up as `sda`, `vda` or `nvme0n1`.
 
-After changing the config, update its sum in the recipe with `pike checksum linux`.
-
 ### Fallback
 
-The previous kernel, 6.18.57 release 2 from v0.4, stays as `/boot/bzImage-6.18.57-2`, with the GRUB entry `RawLinux 6.18.57-2 (fallback)`. It boots the full system, but has none of the drivers above, so only from an IDE disk, the QEMU default.
+The previous kernel, 6.18.57 release 2, stays as `/boot/bzImage-6.18.57-2`, with the GRUB entry `RawLinux 6.18.57-2 (fallback)`. It boots the full system, but has none of the drivers above, so only from an IDE disk, the QEMU default.
 
 To get a root shell without a password, edit an entry in GRUB with `e` and replace `ro` on the `linux` line with `rw init=/bin/bash`. There is no init to shut down, so leave it with the commands below. `mount` finds `/` by its `PARTUUID` in `/etc/fstab`, which needs `/proc` and `/sys`:
 

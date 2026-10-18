@@ -25,11 +25,7 @@ From power on to the login prompt, and back to power off.
 
 ### Packages
 
-```
-pike add openrc
-```
-
-This builds and installs, in order:
+The boot comes from these packages, in the order pike builds them:
 
 | Package | What for |
 |---|---|
@@ -47,13 +43,3 @@ This builds and installs, in order:
 | `openrc` | the services and `openrc`, `rc-status`, `rc-service`, `rc-update` |
 
 Build tools come first. Once OpenRC is built, `pike remove meson` and then `ninja` and `python` free the space, as nothing needs them to run. sysvinit takes `/sbin/init` over from `base-system`. util-linux takes over the hand-built util-linux 2.40, which came without headers and `.pc` files, so e2fsprogs could not be built against libblkid and libuuid. This replaces `mount`, `fsck` and `agetty`, which the boot depends on. Why OpenRC: [ADR 0001](decisions/0001-init-system.md).
-
-On the v0.3 image:
-
-- `/etc/passwd` has only root, and pike keeps it. Take the new one and set the root password before rebooting, see [users and login](users.md).
-- `grub.cfg` starts the kernel with `rw`. Then `/` is already writable at boot and OpenRC skips its check, so `rw` has to become `ro`.
-- gcc's fixed headers were made from glibc 2.40 headers, and with glibc 2.41 Python does not link. Run gcc's `mkheaders` before `pike add openrc`:
-
-```
-/usr/libexec/gcc/x86_64-pc-linux-gnu/14.2.0/install-tools/mkheaders
-```

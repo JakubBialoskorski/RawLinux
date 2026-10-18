@@ -209,11 +209,20 @@ test_backup_modified_is_kept() {
 	check pike install hello
 	check contains "$ROOT/etc/hello.conf" changed
 	check contains "$ROOT/etc/hello.conf.new" default2
-	# The kept file is still modified compared to what version 2 ships.
+	# A release that ships the same file again leaves the local one alone,
+	# without another .new.
 	rm "$ROOT/etc/hello.conf.new"
+	BACKUP=etc/hello.conf recipe hello 3 "" "" etc/hello.conf=default2
+	check pike build hello
 	check pike install hello
 	check contains "$ROOT/etc/hello.conf" changed
-	check has etc/hello.conf.new
+	check hasnt etc/hello.conf.new
+	# One that ships a new default does.
+	BACKUP=etc/hello.conf recipe hello 4 "" "" etc/hello.conf=default4
+	check pike build hello
+	check pike install hello
+	check contains "$ROOT/etc/hello.conf" changed
+	check contains "$ROOT/etc/hello.conf.new" default4
 }
 
 test_backup_matching_needs_no_new_file() {
@@ -427,6 +436,68 @@ test_base_system_cannot_be_removed() {
 	check has usr/bin/sh
 }
 
+test_makedepends_are_not_recorded() {
+	recipe tool 1 "" "" usr/bin/tool=t
+	recipe app 1 "" "" usr/bin/app=a
+	echo 'makedepends=(tool)' >>"$PIKE_RECIPES/app/recipe"
+	pike deps app
+	check test "$(cat "$T/out")" = "$(printf 'tool\napp')"
+	check pike add app
+	check has usr/bin/tool
+	check test "$(cat "$ROOT/var/lib/pike/db/app/depends")" = ""
+	# Nothing needs the build tool once app is built.
+	check pike remove tool
+	check has usr/bin/app
+}
+
+test_outdated_and_upgrade() {
+	recipe hello 1 "" "" usr/bin/hello=1
+	check pike add hello
+	pike outdated
+	check test ! -s "$T/out"
+	# A new version that brings in a dependency.
+	recipe lib 1 "" "" usr/lib/lib=l
+	recipe hello 2 "lib" "" usr/bin/hello=2
+	pike outdated
+	check test "$(cat "$T/out")" = "hello 1-1 -> 2-1"
+	check pike upgrade
+	pike list
+	check test "$(cat "$T/out")" = "$(printf 'hello 2-1\nlib 1-1')"
+	check test "$(cat "$ROOT/usr/bin/hello")" = 2
+	check pike upgrade
+	check out_has "nothing to upgrade"
+}
+
+test_strip_base_system() {
+	command -v cc >/dev/null || return 0
+	mkdir -p "$ROOT/usr/bin"
+	printf 'int main(void) { return 7; }\n' >"$T/hello.c"
+	cc -g -o "$ROOT/usr/bin/hello" "$T/hello.c"
+	ln "$ROOT/usr/bin/hello" "$ROOT/usr/bin/hello2"
+	echo text >"$ROOT/usr/bin/script"
+	check pike adopt
+	size=$(stat -c %s "$ROOT/usr/bin/hello")
+	check pike strip
+	check out_has "stripped 1 files"
+	check test "$(stat -c %s "$ROOT/usr/bin/hello")" -lt "$size"
+	check test "$ROOT/usr/bin/hello" -ef "$ROOT/usr/bin/hello2"
+	check test "$(cat "$ROOT/usr/bin/script")" = text
+	rc=0
+	"$ROOT/usr/bin/hello2" || rc=$?
+	check test "$rc" = 7
+	check pike strip
+	check out_has "stripped 0 files"
+	fails test -e "$ROOT/usr/bin/hello.pikestrip"
+}
+
+test_pike_recipe_packages_itself() {
+	PIKE_RECIPES=$REPO/recipes
+	check pike build pike
+	tar -xJf "$PIKE_CACHE"/packages/pike#*.tar.xz -C "$T/work"
+	check cmp "$T/work/usr/bin/pike" "$PIKE"
+	check cmp "$T/work/usr/share/pike/recipes/pike/recipe" "$REPO/recipes/pike/recipe"
+}
+
 test_repo_recipes_resolve() {
 	local r
 	PIKE_RECIPES=$REPO/recipes
@@ -434,9 +505,10 @@ test_repo_recipes_resolve() {
 		r=${r%/recipe}
 		check pike deps "${r##*/}"
 	done
-	# sysvinit replaces /sbin/init, so it goes in just before OpenRC, which it runs.
+	# Build tools come first, and sysvinit replaces /sbin/init, so it goes
+	# in just before OpenRC, which it runs.
 	check pike deps openrc
-	check test "$(tr '\n' ' ' <"$T/out")" = "libxcrypt pkgconf shadow base-files util-linux e2fsprogs inetutils python ninja meson sysvinit openrc "
+	check test "$(tr '\n' ' ' <"$T/out")" = "python ninja meson pkgconf libxcrypt shadow base-files util-linux e2fsprogs inetutils sysvinit openrc "
 }
 
 test_base_files_recipe() {

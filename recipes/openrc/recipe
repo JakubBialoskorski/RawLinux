@@ -10,8 +10,9 @@
 
 name=openrc
 version=0.64.1
-release=1
-depends=(base-files e2fsprogs inetutils meson pkgconf sysvinit)
+release=2
+depends=(base-files e2fsprogs inetutils sysvinit)
+makedepends=(meson pkgconf)
 source=("https://github.com/OpenRC/openrc/archive/refs/tags/$version.tar.gz")
 sha256=(56d6d24c7fd2ca15d1abd1fb82ce5430629a71acb2c3fa12760300243dbd0baa)
 backup=(etc/rc.conf)

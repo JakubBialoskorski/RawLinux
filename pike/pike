@@ -16,9 +16,11 @@ export LC_ALL=C
 
 ROOT=${ROOT:-/}
 ROOT=${ROOT%/}/
-PIKE_RECIPES=${PIKE_RECIPES:-/usr/share/pike/recipes}
+PIKE_RECIPES=$(realpath -m "${PIKE_RECIPES:-/usr/share/pike/recipes}")
 PIKE_CACHE=${PIKE_CACHE:-/var/cache/pike}
 PIKE_WORK=${PIKE_WORK:-/var/tmp/pike}
+# The script itself, for the recipe of pike, which packages it.
+PIKE_SELF=$(realpath -e "$0")
 DB=${ROOT}var/lib/pike/db
 LOCK=${ROOT}var/lib/pike/lock
 ORIG=${ROOT}var/lib/pike/base
@@ -42,7 +44,10 @@ usage: pike <command> [args]
   build <name>         build a package from its recipe
   install <name|file>  install or upgrade a built package
   add <name>           build and install a package with its dependencies
+  outdated             list installed packages that differ from their recipes
+  upgrade              build and install every outdated package
   adopt                record untracked files as the base-system package
+  strip                strip debug info from the ELF files of base-system
   remove <name>        remove an installed package
   list                 list installed packages
   files <name>         list files owned by a package
@@ -76,7 +81,7 @@ load_recipe() {
 	local f=$PIKE_RECIPES/$1/recipe
 	[ -f "$f" ] || die "no recipe for '$1' in $PIKE_RECIPES"
 	name='' version='' release=''
-	depends=() source=() sha256=() backup=()
+	depends=() makedepends=() source=() sha256=() backup=()
 	# shellcheck source=/dev/null
 	. "$f"
 	[ "$name" = "$1" ] || die "$f: name must be '$1'"
@@ -86,10 +91,20 @@ load_recipe() {
 	declare -F build >/dev/null || die "$f: build() is not defined"
 }
 
+# Build dependencies come first, they have to be installed before the
+# package is built. Only depends is recorded when it is installed.
 recipe_depends() {
 	(
 		load_recipe "$1"
-		printf '%s\n' "${depends[@]}"
+		printf '%s\n' "${makedepends[@]}" "${depends[@]}"
+	)
+}
+
+# The version and release a recipe would build, as 'pike list' shows it.
+recipe_version() {
+	(
+		load_recipe "$1"
+		printf '%s\n' "$version-$release"
 	)
 }
 
@@ -183,7 +198,7 @@ cmd_build() {
 		SRC=$work/src
 		PKG=$work/pkg
 		mkdir -p "$SRC" "$PKG"
-		export SRC PKG
+		export SRC PKG PIKE_SELF
 
 		for s in "${source[@]}"; do
 			f=$(fetch "$s")
@@ -395,7 +410,8 @@ cmd_install() {
 
 		# Backup files that still match the version shipped last time
 		# are replaced. Local changes are kept and the new version goes
-		# next to them as <file>.new.
+		# next to them as <file>.new, unless the package ships the same
+		# version as last time.
 		local new cur orig
 		: >"$TMP/exclude"
 		: >"$TMP/backup.db"
@@ -411,8 +427,10 @@ cmd_install() {
 				if [ -n "$orig" ] && [ "$cur" = "$orig" ]; then
 					continue
 				fi
-				cp "$TMP/backup" "$ROOT$p.new"
-				msg "kept modified /$p, new version saved as /$p.new"
+				if [ "$new" != "$orig" ]; then
+					cp "$TMP/backup" "$ROOT$p.new"
+					msg "kept modified /$p, new version saved as /$p.new"
+				fi
 			fi
 			printf './%s\n' "$p" >>"$TMP/exclude"
 		done
@@ -534,6 +552,53 @@ cmd_add() {
 	done
 }
 
+# Print the installed packages whose recipe builds another version or
+# release. Packages without a recipe, such as base-system, are left out.
+outdated() {
+	local d n
+	for d in "$DB"/*/version; do
+		[ -f "$d" ] || continue
+		d=${d%/version}
+		n=${d##*/}
+		[ -f "$PIKE_RECIPES/$n/recipe" ] || continue
+		[ "$(cat "$d/version")" = "$(recipe_version "$n")" ] || printf '%s\n' "$n"
+	done
+}
+
+cmd_outdated() {
+	[ $# -eq 0 ] || die "usage: pike outdated"
+	local n
+	for n in $(outdated); do
+		printf '%s %s -> %s\n' "$n" "$(cat "$DB/$n/version")" "$(recipe_version "$n")"
+	done
+}
+
+# 'pike add' leaves installed packages alone, this rebuilds the outdated
+# ones, dependencies first. A dependency a newer recipe brings in is
+# installed as 'pike add' would do it.
+cmd_upgrade() {
+	[ $# -eq 0 ] || die "usage: pike upgrade"
+	need_root
+	local n list order
+	list=$(outdated)
+	[ -n "$list" ] || {
+		msg "nothing to upgrade"
+		return 0
+	}
+	# Each order lists dependencies first, and a name repeated in a later
+	# one is up to date by then, so it is skipped.
+	order=$(for n in $list; do resolve "$n"; done)
+	for n in $order; do
+		if is_installed "$n" && [ "$(cat "$DB/$n/version")" = "$(recipe_version "$n")" ]; then
+			continue
+		fi
+		if [ ! -f "$(pkgfile "$n")" ]; then
+			cmd_build "$n"
+		fi
+		cmd_install "$n"
+	done
+}
+
 # Record every file that no package owns as the base-system package,
 # so 'owns' works for the hand-built system and recipes can take its
 # files over one by one. Running it again picks up new untracked files
@@ -555,6 +620,50 @@ cmd_adopt() {
 		version=$(date +%Y%m%d)
 		save_db "$BASE_PKG" "$version" "" "$TMP/backup.db" "$TMP/manifest"
 		msg "$BASE_PKG $version owns $(grep -vc '/$' "$TMP/manifest") files"
+	)
+}
+
+# The hand-built system was installed with debug info, which packages
+# lose at build time. Every ELF file of base-system is stripped in a copy
+# that is renamed over it, so a running program or a library in use keeps
+# its old file. Other names of a hard linked file are linked to the
+# stripped copy the same way.
+cmd_strip() {
+	[ $# -eq 0 ] || die "usage: pike strip"
+	need_root
+	(
+		lock
+		local p f tmp inode before=0 after=0 files=0
+		local -A stripped=()
+		grep -v '/$' "$DB/$BASE_PKG/manifest" >"$TMP/files" || true
+		while IFS= read -r p; do
+			f=$ROOT$p
+			[ -f "$f" ] || continue
+			[ -L "$f" ] && continue
+			inode=$(stat -c %d:%i "$f")
+			tmp=$f.pikestrip
+			if [ -n "${stripped[$inode]:-}" ]; then
+				ln -f "${stripped[$inode]}" "$tmp"
+				mv -f "$tmp" "$f"
+				continue
+			fi
+			is_elf "$f" || continue
+			cp -a "$f" "$tmp"
+			case $f in
+			*.a | *.o) strip --strip-debug "$tmp" 2>/dev/null || true ;;
+			*) strip --strip-unneeded "$tmp" 2>/dev/null || true ;;
+			esac
+			if cmp -s "$f" "$tmp"; then
+				rm -f "$tmp"
+				continue
+			fi
+			before=$((before + $(stat -c %s "$f")))
+			after=$((after + $(stat -c %s "$tmp")))
+			files=$((files + 1))
+			mv -f "$tmp" "$f"
+			stripped[$inode]=$f
+		done <"$TMP/files"
+		msg "stripped $files files, $(((before - after) / 1048576)) MiB less"
 	)
 }
 
@@ -618,7 +727,7 @@ cmd_checksum() {
 cmd=$1
 shift
 case $cmd in
-build | install | add | adopt | remove | list | files | owns | deps | checksum) "cmd_$cmd" "$@" ;;
+build | install | add | outdated | upgrade | adopt | strip | remove | list | files | owns | deps | checksum) "cmd_$cmd" "$@" ;;
 -h | --help | help) usage ;;
 *)
 	usage >&2

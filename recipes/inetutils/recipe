@@ -6,8 +6,8 @@
 
 name=inetutils
 version=2.6
-release=1
-depends=()
+release=2
+depends=(ncurses)
 source=("https://ftp.gnu.org/gnu/inetutils/inetutils-$version.tar.xz")
 sha256=(68bedbfeaf73f7d86be2a7d99bcfbd4093d829f52770893919ae174c0b2357ca)
 

@@ -1,0 +1,43 @@
+# ncurses - terminal handling library, with tic, tput and the terminfo
+# database
+# https://invisible-island.net/ncurses/
+#
+# It takes over the hand-built ncurses 6.5, which had both the narrow
+# and the wide libraries, but the narrow headers. Only the wide ones are
+# built here, with tinfo split out and versioned symbols as before, as
+# bash needs libtinfo.so.6 with them. As in the LFS book, linking with
+# -lncurses, -lcurses, -lform, -lpanel or -lmenu gets the wide library,
+# here with tinfo, and curses.h always declares the wide functions. The
+# old narrow libncurses.so.6 stays for the programs linked against it.
+
+name=ncurses
+version=6.6
+release=1
+depends=()
+source=("https://ftp.gnu.org/gnu/ncurses/ncurses-$version.tar.gz")
+sha256=(355b4cbbed880b0381a04c46617b7656e362585d52e9cf84a67e2009b749ff11)
+
+build() {
+	cd "ncurses-$version"
+	./configure --prefix=/usr --mandir=/usr/share/man \
+		--with-shared --without-debug --without-normal --with-cxx-shared \
+		--enable-widec --with-termlib --with-versioned-syms \
+		--enable-pc-files --with-pkg-config-libdir=/usr/lib/pkgconfig \
+		--without-ada
+	make -j"$(nproc)"
+	make DESTDIR="$PKG" install
+	cd "$PKG/usr/lib"
+	local lib
+	for lib in form panel menu; do
+		echo "INPUT(-l${lib}w)" >"lib$lib.so"
+		ln -s "${lib}w.pc" "pkgconfig/$lib.pc"
+	done
+	for lib in ncurses curses cursesw; do
+		echo "INPUT(-lncursesw -ltinfow)" >"lib$lib.so"
+	done
+	ln -s ncursesw.pc pkgconfig/ncurses.pc
+	ln -s libtinfow.so.6 libtinfo.so.6
+	ln -s libtinfow.so libtinfo.so
+	ln -s tinfow.pc pkgconfig/tinfo.pc
+	sed -i 's/^#if.*XOPEN.*$/#if 1/' "$PKG/usr/include/curses.h"
+}

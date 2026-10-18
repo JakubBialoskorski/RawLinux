@@ -1,0 +1,4 @@
+# /etc/profile - environment of login shells
+
+export PATH=/usr/bin:/usr/sbin
+export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt

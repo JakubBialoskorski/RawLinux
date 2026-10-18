@@ -1,0 +1,29 @@
+# /etc/inittab - what init runs in each runlevel, see inittab(5)
+# init starts OpenRC, OpenRC starts and stops the services.
+# Based on support/sysvinit/inittab from OpenRC.
+
+id:3:initdefault:
+
+si::sysinit:/sbin/openrc sysinit
+rc::bootwait:/sbin/openrc boot
+
+l0u:0:wait:/sbin/telinit u
+l0:0:wait:/sbin/openrc shutdown
+l0s:0:wait:/sbin/halt.sh
+l1:S1:wait:/sbin/openrc single
+l2:2:wait:/sbin/openrc nonetwork
+l3:3:wait:/sbin/openrc default
+l4:4:wait:/sbin/openrc default
+l5:5:wait:/sbin/openrc default
+l6u:6:wait:/sbin/telinit u
+l6:6:wait:/sbin/openrc reboot
+l6r:6:wait:/sbin/reboot -d
+
+su0:S:wait:/sbin/openrc single
+su1:S:wait:/sbin/sulogin
+
+ca:12345:ctrlaltdel:/sbin/shutdown -r now
+
+# A root shell on the first console and on the serial port.
+1:2345:respawn:/sbin/agetty --noclear --skip-login --login-program /bin/bash --login-options -l tty1 38400 linux
+S0:2345:respawn:/sbin/agetty --skip-login --login-program /bin/bash --login-options -l ttyS0 115200 vt100

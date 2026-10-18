@@ -35,3 +35,13 @@ bc: https://ftp.gnu.org/gnu/bc
 curl: https://github.com/curl/curl/releases
 git: https://github.com/git/git/archive/refs/tags
 strace: https://github.com/strace/strace/releases
+e2fsprogs: https://www.kernel.org/pub/linux/kernel/people/tytso/e2fsprogs
+inetutils: https://ftp.gnu.org/gnu/inetutils
+pkgconf: https://distfiles.ariadne.space/pkgconf
+Python: https://www.python.org/ftp/python
+ninja: https://github.com/ninja-build/ninja/releases
+meson: https://github.com/mesonbuild/meson/releases
+sysvinit: https://github.com/slicer69/sysvinit/releases
+OpenRC: https://github.com/OpenRC/openrc/releases
+libxcrypt: https://github.com/besser82/libxcrypt/releases
+shadow: https://github.com/shadow-maint/shadow/releases
